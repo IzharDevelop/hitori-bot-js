@@ -7,7 +7,7 @@
 * Download And Install ImageMagick [`Click Here`](https://imagemagick.org/script/download.php)
 
 ```bash
-git clone https://github.com/nazedev/hitori
+git clone https://github.com/IzharDevelop/hitori-bot-js
 cd hitori
 npm install
 npm update
