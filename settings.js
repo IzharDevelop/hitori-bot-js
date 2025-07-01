@@ -1,15 +1,18 @@
 const fs = require('fs');
 const chalk = require('chalk');
+
 //~~~~~~~~~~~~< GLOBAL SETTINGS >~~~~~~~~~~~~\\
 
-global.owner = ['6285852536578','6285806221231']
-global.packname = 'amel bot'
-global.author = 'Izhar Dev'
-global.botname = 'Amel Bot'
-global.listprefix = ['+','!']
+global.owner = ['6285852536579'] //['628','628'] 2 owner atau lebih
+global.packname = 'zoro'
+global.author = 'zoro'
+global.botname = 'dev'
+global.listprefix = ['+','!','.']
 global.listv = ['•','●','■','✿','▲','➩','➢','➣','➤','✦','✧','△','❀','○','□','♤','♡','◇','♧','々','〆']
-global.tempatDB = 'database.json'
+global.tempatDB = 'database.json' // Taruh url mongodb di sini jika menggunakan mongodb. Format : 'mongodb+srv://...'
+global.tempatStore = 'baileys_store.json' // Taruh url mongodb di sini jika menggunakan mongodb. Format : 'mongodb+srv://...'
 global.pairing_code = true
+global.number_bot = '' // Kalo pake panel bisa masukin nomer di sini, jika belum ambil session. Format : '628xx'
 
 global.fake = {
 	anonim: 'https://telegra.ph/file/95670d63378f7f4210f03.png',
@@ -21,42 +24,49 @@ global.fake = {
 
 global.my = {
 	yt: 'https://youtube.com/c/',
-	gh: 'https://github.com/IharDevelop',
+	gh: 'https://github.com/',
 	gc: 'https://chat.whatsapp.com/',
-	ch: '@newsletter',
+	ch: '120363419807608886@newsletter',
 }
 
 global.limit = {
-	free: 100,
+	free: 20,
 	premium: 999,
-	vip: 'VIP'
+	vip: 9999
 }
 
-global.uang = {
+global.money = {
 	free: 10000,
 	premium: 1000000,
 	vip: 10000000
 }
 
 global.mess = {
-	key0: 'Apikey mu telah habis silahkan kunjungi\nhttps://my.hitori.pw',
-	owner: 'Fitur niki khusus damel bos kulo tersayang!',
-	admin: 'Fitur niki Khusus Admin sayang !',
-	botAdmin: 'kulo amel bot sanes admin!!!',
-	group: 'jenengan damel fitur niki ten grub geh sayang!',
-	private: 'njenengan damel fitur niki ten chat pribadi kulo geh sayang!',
-	prem: 'pang ngapunten niki khusus damel user VVIP sayang!',
-	wait: 'sekedap geh sayang...',
-	error: 'ngapunten yang, wonten troble!',
-	done: 'ngeten nopo'
+	key: 'Apikey mu telah habis silahkan chat Izhardevelop',
+	owner: 'Fitur Khusus OWNERR!',
+	admin: 'Fitur ini khusus ADMIN!',
+	botAdmin: 'Bot bukan admin!',
+	group: 'Gunakan Di Group!',
+	private: 'Gunakan Di Privat Chat!',
+	limit: 'Limit Anda Telah Habis!',
+	prem: 'Khusus User Premium!',
+	wait: 'Loading...',
+	error: 'Error!',
+	done: 'Done'
 }
 
 global.APIs = {
-	hitori: 'https://my.hitori.pw/api',
+	hitori: 'https://api.hitori.pw',
 }
 global.APIKeys = {
-	'https://my.hitori.pw/api': 'htrkey-awokawok',
+	'https://api.hitori.pw': 'htrkey-77eb83c0eeb39d40',
+	geminiApikey: ['AIzaSyD0lkGz6ZhKi_MHSSmJcCX3wXoDZhELPaQ','AIzaSyDnBPd_EhBfr73NssnThVQZYiKZVhGZewU','AIzaSyA94OZD-0V4quRbzPb2j75AuzSblPHE75M','AIzaSyB5aTYbUg2VQ0oXr5hdJPN8AyLJcmM84-A','AIzaSyB1xYZ2YImnBdi2Bh-If_8lj6rvSkabqlA']
 }
+
+// Lainnya
+
+global.badWords = ['tolol','goblok','asu','pantek','kampret','ngentot','jancok','kontol','memek','lonte']
+global.chatLength = 1000
 
 //~~~~~~~~~~~~~~~< PROCESS >~~~~~~~~~~~~~~~\\
 
