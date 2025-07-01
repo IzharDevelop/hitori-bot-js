@@ -1,11 +1,13 @@
 {
   "name": "hitori",
-  "version": "1.0.4",
+  "version": "1.0.7",
   "description": "Bot WhatsApp Using Lib Baileys Multi Device",
   "main": "start.js",
   "type": "commonjs",
   "scripts": {
-    "start": "node start.js"
+    "start": "node start.js",
+    "dev": "nodemon index.js",
+    "debug": "DEBUG=* node start.js"
   },
   "keywords": [
     "whatsapp-bot",
@@ -15,17 +17,27 @@
   ],
   "author": "Nazedev",
   "license": "MIT",
+  "directories": {
+    "lib": "lib",
+    "src": "src"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "dependencies": {
+    "@google/generative-ai": "^0.24.0",
     "@hapi/boom": "^10.0.0",
     "@ibaraki-douji/pixivts": "^2.4.1",
-    "@whiskeysockets/baileys": "latest",
     "aki-api": "npm:@aqul/akinator-api@1.0.1",
     "awesome-phonenumber": "^4.4.0",
     "axios": "^0.24.0",
+    "baileys": "github:naruyaizumi/baileys",
     "chalk": "^4.1.2",
     "cheerio": "^1.0.0-rc.10",
+    "chess.js": "^1.2.0",
     "child_process": "^1.0.2",
     "crypto": "^1.0.1",
+    "crypto-js": "^4.2.0",
     "didyoumean": "^1.2.2",
     "express": "^4.18.2",
     "filesize": "^10.0.7",
@@ -44,16 +56,20 @@
     "mongoose": "^7.3.4",
     "moment-timezone": "^0.5.43",
     "ms": "^2.1.3",
+    "node-cache": "^5.1.2",
     "node-cron": "^3.0.0",
     "node-fetch": "^2.6.1",
     "node-gtts": "^2.0.2",
     "node-webpmux": "^3.2.0",
+    "nodemon": "*",
     "os": "^0.1.2",
     "path": "^0.12.7",
     "pdfkit": "^0.13.0",
     "perf_hooks": "^0.0.1",
+    "performance-now": "^2.1.0",
     "pino": "^8.8.0",
     "process": "^0.11.10",
+    "qrcode": "^1.5.4",
     "qrcode-terminal": "^0.12.0",
     "qs": "^6.11.0",
     "similarity": "^1.2.1",
@@ -65,10 +81,6 @@
     "ytdl-core": "npm:@distube/ytdl-core@latest",
     "yt-search": "^2.10.4"
   },
-  "directories": {
-    "lib": "lib"
-  },
-  "devDependencies": {},
   "repository": {
     "type": "git",
     "url": "git+https://github.com/nazedev/hitori.git"
