@@ -373,98 +373,7 @@ module.exports = naze = async (naze, m, msg, store, groupCache) => {
 			}, 60000)
 		}, time_end);
         
-        
-        const SUKABUMI_CITY_ID = 1204;
-async function fetchPrayerTimes() {
-    try {
-        const sekarang = moment.tz('Asia/Jakarta');
-        const tahun = sekarang.format('YYYY');
-        const bulan = sekarang.format('MM');
-        const tanggal = sekarang.format('DD');
-        
-        const apiUrl = `https://api.myquran.com/v2/sholat/jadwal/${SUKABUMI_CITY_ID}/${tahun}/${bulan}/${tanggal}`;
-        const response = await axios.get(apiUrl);
-        
-        if (response.data && response.data.status && response.data.data) {
-            const dataSholat = response.data.data.jadwal;
-            return {
-                Subuh: dataSholat.subuh,
-                Dzuhur: dataSholat.dzuhur,
-                Ashar: dataSholat.ashar,
-                Maghrib: dataSholat.maghrib,
-                Isya: dataSholat.isya
-            };
-        } else {
-            console.error('Gagal mengambil data sholat dari API:', response.data);
-            return null;
-        }
-    } catch (error) {
-        console.error('Error saat mengambil jadwal sholat:', error);
-        return null;
-    }
-}
-// Variabel untuk menyimpan jadwal sholat yang diperbarui
-let currentJadwalSholat = {}; 
-let lastFetchDate = ''; // Untuk melacak kapan terakhir kali jadwal diambil
-
-if (!this.intervalSholat) this.intervalSholat = null;
-if (!this.waktusholat) this.waktusholat = {};
-if (this.intervalSholat) clearInterval(this.intervalSholat); 
-
-// Kita akan mengatur interval agar mengambil jadwal setiap hari sekali
-// Dan juga memeriksa setiap menit untuk waktu sholat
-const setupPrayerTimeChecks = async () => {
-    const sekarang = moment.tz('Asia/Jakarta');
-    const hariIni = sekarang.format('YYYY-MM-DD');
-
-    // Ambil jadwal sholat hanya sekali per hari
-    if (hariIni !== lastFetchDate) {
-        const fetchedTimes = await fetchPrayerTimes();
-        if (fetchedTimes) {
-            currentJadwalSholat = fetchedTimes;
-            lastFetchDate = hariIni;
-            console.log(`Jadwal Sholat Sukabumi untuk hari ini (${hariIni}) telah diperbarui:`, currentJadwalSholat);
-        } else {
-            console.warn('Tidak dapat memperbarui jadwal sholat. Menggunakan jadwal sebelumnya jika ada.');
-        }
-    }
-
-    // Hapus interval lama jika ada
-    if (this.intervalSholat) clearInterval(this.intervalSholat);
-
-    // Set interval untuk memeriksa waktu sholat setiap menit
-    this.intervalSholat = setInterval(async() => {
-        const cekSekarang = moment.tz('Asia/Jakarta');
-        const jamSholat = cekSekarang.format('HH:mm');
-        const cekHariIni = cekSekarang.format('YYYY-MM-DD');
-        const detik = cekSekarang.format('ss');
-
-        // Pastikan jadwal sudah diperbarui untuk hari ini
-        if (cekHariIni !== lastFetchDate) {
-            const fetchedTimes = await fetchPrayerTimes();
-            if (fetchedTimes) {
-                currentJadwalSholat = fetchedTimes;
-                lastFetchDate = cekHariIni;
-                console.log(`Jadwal Sholat Sukabumi untuk hari ini (${cekHariIni}) telah diperbarui:`, currentJadwalSholat);
-            }
-        }
-        
-        if (detik !== '00') return; // Hanya cek setiap awal menit
-
-        for (const [sholat, waktu] of Object.entries(currentJadwalSholat)) {
-            if (jamSholat === waktu && this.waktusholat[sholat] !== cekHariIni) {
-                this.waktusholat[sholat] = cekHariIni;
-                for (const [idnya, settings] of Object.entries(db.groups)) {
-                    if (settings.waktusholat) {
-                        await naze.sendMessage(idnya, { text: `Waktu *${sholat}* telah tiba, ambilah air wudhu dan segeralah shalat😇.\n\n*${waktu.slice(0, 5)}*\n_untuk wilayah Sukabumi dan sekitarnya._` }, { ephemeralExpiration: m.expiration || store?.messages[idnya]?.array?.slice(-1)[0]?.metadata?.ephemeralDuration || 0 }).catch(e => {})
-                    }
-                }
-            }
-        }
-    }, 60000); // Cek setiap 1 menit
-}; //end jadwal solat
-        
-        
+        //set jadwal sholat
         
 		if (/^welkam$/.test(budy?.toLowerCase())){
             m.reply(`WELKAM TU GRUP\n\n> JANGAN LUPA INTRO YAH\nLIST INTRO WAJIB ISI\n1. Nama lengkap: \n2. Nama panggilan: \n3. Tanggal lahir: \n4. Tempat lahir: \n5. Jenis kelamin: \n6. Alamat rumah: \n7. No. HP: \n8. Email: \n9. Status pernikahan: \n10. Agama: \n\nKeluarga\n11. Nama ayah: \n12. Nama ibu: \n13. Jumlah saudara kandung: \n14. Nama saudara kandung: \n15. Status keluarga (sederhana, menengah, atas): \n\nPendidikan\n16. Pendidikan terakhir: \n17. Jurusan: \n18. Nama sekolah/universitas: \n19. Tahun lulus: \n20. Prestasi akademik: \n\nKarir\n21. Pekerjaan saat ini: \n22. Jabatan: \n23. Perusahaan: \n24. Pengalaman kerja: \n25. Gaji: \n\nHobi dan Minat\n26. Hobi: \n27. Minat: \n28. Aktivitas yang disukai: \n29. Buku favorit: \n30. Film favorit: \n\nKepribadian\n31. Sifat baik: \n32. Sifat buruk: \n33. Motto hidup: \n34. Tujuan hidup: \n35. Nilai-nilai yang dianut: \n\nKesehatan\n36. Riwayat penyakit: \n37. Alergi: \n38. Kondisi kesehatan saat ini: \n39. Olahraga yang disukai: \n40. Pola makan: \n\nKeuangan\n41. Sumber pendapatan: \n42. Pengeluaran bulanan: \n43. Tabungan: \n44. Investasi: \n45. Tujuan keuangan: \n\nHubungan Sosial\n46. Jumlah teman dekat: \n47. Nama teman dekat: \n48. Aktivitas sosial: \n49. Komunitas yang diikuti: \n50. Kegiatan sukarela: \n\nTeknologi\n51. Perangkat yang digunakan (HP, laptop, dll.): \n52. Sistem operasi yang digunakan: \n53. Aplikasi favorit: \n54. Media sosial yang digunakan: \n55. Keahlian teknologi: \n\nPerjalanan\n56. Tempat yang pernah dikunjungi: \n57. Negara yang pernah dikunjungi: \n58. Pengalaman perjalanan: \n59. Tujuan perjalanan selanjutnya: \n60. Cara bepergian favorit: \n\nMakanan dan Minuman\n61. Makanan favorit: \n62. Minuman favorit: \n63. Restoran favorit: \n64. Jenis makanan yang disukai: \n65. Pola makan: \n\nMusik dan Seni\n66. Genre musik favorit: \n67. Artis favorit: \n68. Alat musik yang dimainkan: \n69. Kegiatan seni yang disukai: \n70. Karya seni favorit: \n\nTujuan dan Impian\n71. Tujuan jangka pendek: \n72. Tujuan jangka panjang: \n73. Impian: \n74. Langkah-langkah untuk mencapai tujuan: \n75. Motivasi: \n\nRefleksi Diri\n76. Hal yang disukai dari diri sendiri: \n77. Hal yang tidak disukai dari diri sendiri: \n78. Kekuatan: \n79. Kelemahan: \n80. Pelajaran hidup: \n\nLain-lain\n81. Nama hewan peliharaan: \n82. Jenis hewan peliharaan: \n83. Aktivitas yang dilakukan saat liburan: \n84. Tempat favorit: \n85. Kegiatan yang disukai saat sendirian: \n\nPengembangan Diri\n86. Kursus yang pernah diikuti: \n87. Pelatihan yang pernah diikuti: \n88. Buku pengembangan diri yang dibaca: \n89. Kegiatan pengembangan diri yang disukai: \n90. Tujuan pengembangan diri: \n\nKreativitas\n91. Kegiatan kreatif yang disukai: \n92. Karya kreatif yang pernah dibuat: \n93. Sumber inspirasi: \n94. Cara mengekspresikan kreativitas: \n95. Kegiatan seni yang disukai: \n\nAkhir\n96. Pesan untuk diri sendiri: \n97. Harapan untuk masa depan: \n98. Hal yang ingin dibanggakan: \n99. Kegiatan yang ingin dilakukan sebelum meninggal: \n100. Motto hidup:`)
@@ -1022,7 +931,6 @@ const setupPrayerTimeChecks = async () => {
 	
 switch (command) {
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// ... di dalam switch(command) { ...
 
 case 'shop': {
 	 m.reply(`Selamat datang ${m.pushName ? m.pushName : 'Tanpa Nama'}
