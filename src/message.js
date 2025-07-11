@@ -108,10 +108,12 @@ async function LoadDataBase(naze, m) {
 		let premium = global.db.premium || [];
 		let user = global.db.users[m.sender] || {};
 		let setBot = global.db.set[botNumber] || {};
+		let shop = global.db.shop || { users: {} }; // Tambahkan baris ini: Inisialisasi shop
 		
 		global.db.game = game;
 		global.db.users[m.sender] = user;
 		global.db.set[botNumber] = setBot;
+		global.db.shop = shop; // Tambahkan baris ini: Daftarkan shop ke global.db
 		
 		const defaultSetBot = {
 			lang: 'id',
@@ -212,6 +214,14 @@ async function LoadDataBase(naze, m) {
 		for (let key in defaultGame) {
 			if (!(key in game)) game[key] = defaultGame[key];
 		}
+        
+        // Pastikan struktur dasar 'shop' ada jika belum
+        const defaultShop = {
+            users: {} // Objek untuk menyimpan data pengguna shop
+        };
+        for (let key in defaultShop) {
+            if (!(key in shop)) shop[key] = defaultShop[key];
+        }
 		
 	} catch (e) {
 		throw e
@@ -703,7 +713,7 @@ async function Solving(naze, store) {
 
 /*
 	* Create By Naze
-	* Follow https://github.com/nazedev
+	* Follow https://github.com/nazedev/hitori
 	* Whatsapp : https://whatsapp.com/channel/0029VaWOkNm7DAWtkvkJBK43
 */
 

@@ -1,8 +1,6 @@
 process.on('uncaughtException', console.error)
 process.on('unhandledRejection', console.error)
 
-
-
 require('./settings');
 const fs = require('fs');
 const os = require('os');
@@ -45,7 +43,7 @@ const { toAudio, toPTT, toVideo } = require('./lib/converter');
 const { GroupUpdate, LoadDataBase } = require('./src/message');
 const { JadiBot, StopJadiBot, ListJadiBot } = require('./src/jadibot');
 const { imageToWebp, videoToWebp, gifToWebp, writeExif } = require('./lib/exif');
-const { cmdAdd, cmdDel, cmdAddHit, addExpired, getPosition, getExpired, getStatus, checkStatus, getAllExpired, checkExpired } = require('./src/database');
+const { cmdAdd, cmdDel, cmdAddHit, addExpired, getPosition, getExpired, getStatus, checkStatus, getAllExpired, checkExpired, addLevelExp } = require('./src/database');
 const { rdGame, iGame, tGame, gameSlot, gameCasinoSolo, gameSamgongSolo, gameMerampok, gameBegal, daily, buy, setLimit, addLimit, addMoney, setMoney, transfer, Blackjack, SnakeLadder } = require('./lib/game');
 const { pinterest, wallpaper, remini, wikimedia, hitamkan, yanzGpt, mediafireDl, ringtone, styletext, instagramDl, tiktokDl, facebookDl, instaStalk, telegramStalk, tiktokStalk, genshinStalk, instaStory, bk9Ai, spotifyDl, ytMp4, ytMp3, NvlGroup, quotedLyo, youSearch, gptLogic, savetube, simi, geminiAi } = require('./lib/screaper');
 const { unixTimestampSeconds, generateMessageTag, processTime, webApi, getRandom, getBuffer, fetchJson, runtime, clockString, sleep, isUrl, getTime, formatDate, formatp, jsonformat, reSize, toHD, logic, generateProfilePicture, bytesToSize, errorCache, normalize, getSizeMedia, parseMention, getGroupAdmins, readFileTxt, readFileJson, getHashedPassword, generateAuthToken, cekMenfes, generateToken, batasiTeks, randomText, isEmoji, getTypeUrlMedia, pickRandom, convertTimestampToDate, getAllHTML, tarBackup } = require('./lib/function');
@@ -89,6 +87,26 @@ module.exports = naze = async (naze, m, msg, store, groupCache) => {
 		const time_end = 60000 - (time_now.getSeconds() * 1000 + time_now.getMilliseconds());
 		const readmore = String.fromCharCode(8206).repeat(999)
 		const setv = pickRandom(listv)
+
+		//JABATAN DALAM TOKO
+		// ... di dalam module.exports = naze = async (naze, m, msg, store, groupCache) => { ... }
+// ... setelah variabel 'setv', 'readmore', dll. ...
+
+        // Shop Roles Hierarchy
+        const shopRoles = ['pelanggan', 'member', 'reseller', 'admin', 'manager'];
+
+        // Get user's shop role
+        const userShopData = global.db.shop?.users?.[m.sender];
+        const userShopRole = userShopData ? userShopData.bagian.toLowerCase() : 'none'; // Default 'none' if not found
+
+        // Determine user's shop access level
+        const userShopRoleIndex = shopRoles.indexOf(userShopRole);
+
+        const isShopRegistered = userShopRoleIndex !== -1;
+        const isShopMember = userShopRoleIndex >= shopRoles.indexOf('member');
+        const isShopReseller = userShopRoleIndex >= shopRoles.indexOf('reseller');
+        const isShopAdmin = userShopRoleIndex >= shopRoles.indexOf('admin');
+        const isShopManager = userShopRoleIndex >= shopRoles.indexOf('manager');
 		
 		// Read Database
 		const sewa = db.sewa
@@ -141,7 +159,16 @@ module.exports = naze = async (naze, m, msg, store, groupCache) => {
 				}
 			}
 		}
-		
+		//random string
+        function generateRandomString(length) {
+  const characters = "abcdefghijklmnopqrstuvwxyz0123456789";
+  let result = "";
+  const charactersLength = characters.length;
+  for (let i = 0; i < length; i++) {
+    result += characters.charAt(Math.floor(Math.random() * charactersLength));
+  }
+  return result;
+}
 		// Reset Limit
 		cron.schedule('00 00 * * *', async () => {
 			cmdDel(db.hit);
@@ -172,6 +199,12 @@ module.exports = naze = async (naze, m, msg, store, groupCache) => {
 			timezone: 'Asia/Jakarta'
 		});
 		
+		//daftar
+		if (!isCreator && isCmd && command !== 'daftar' && !db.users[m.sender].register) {
+            return m.reply(`Kamu belum terdaftar! Silakan daftar terlebih dahulu dengan perintah:\n*${prefix}daftar nama umur asal_daerah*\n\nContoh: *${prefix}daftar Budi 20 Jakarta*`);
+        }
+		
+
 		// Auto Set Bio
 		if (set.autobio) {
 			if (new Date() * 1 - set.status > 60000) {
@@ -285,6 +318,15 @@ module.exports = naze = async (naze, m, msg, store, groupCache) => {
 			if (cases.includes(command)) {
 				cmdAdd(db.hit);
 				cmdAddHit(db.hit, command);
+                // Tambahkan EXP untuk pengguna yang terdaftar
+                if (db.users[m.sender].register) {
+                    const oldLevel = db.users[m.sender].level;
+                    addLevelExp(m.sender, 5); // Beri 5 EXP per penggunaan perintah (sesuaikan jumlahnya)
+                    const newLevel = db.users[m.sender].level;
+                    if (newLevel > oldLevel) {
+                        m.reply(`🎉 Selamat @${m.sender.split('@')[0]}, kamu naik level menjadi Level ${newLevel}!`);
+                    }
+                }
 			}
 			if (set.antispam && antiSpam.isFiltered(m.sender)) {
 				console.log(chalk.bgRed('[ SPAM ] : '), chalk.black(chalk.bgHex('#1CFFF7')(`From -> ${m.sender}`), chalk.bgHex('#E015FF')(` In ${m.isGroup ? m.chat : 'Private Chat'}`)))
@@ -330,7 +372,179 @@ module.exports = naze = async (naze, m, msg, store, groupCache) => {
 				}
 			}, 60000)
 		}, time_end);
-		
+        
+        
+        const SUKABUMI_CITY_ID = 1204;
+async function fetchPrayerTimes() {
+    try {
+        const sekarang = moment.tz('Asia/Jakarta');
+        const tahun = sekarang.format('YYYY');
+        const bulan = sekarang.format('MM');
+        const tanggal = sekarang.format('DD');
+        
+        const apiUrl = `https://api.myquran.com/v2/sholat/jadwal/${SUKABUMI_CITY_ID}/${tahun}/${bulan}/${tanggal}`;
+        const response = await axios.get(apiUrl);
+        
+        if (response.data && response.data.status && response.data.data) {
+            const dataSholat = response.data.data.jadwal;
+            return {
+                Subuh: dataSholat.subuh,
+                Dzuhur: dataSholat.dzuhur,
+                Ashar: dataSholat.ashar,
+                Maghrib: dataSholat.maghrib,
+                Isya: dataSholat.isya
+            };
+        } else {
+            console.error('Gagal mengambil data sholat dari API:', response.data);
+            return null;
+        }
+    } catch (error) {
+        console.error('Error saat mengambil jadwal sholat:', error);
+        return null;
+    }
+}
+// Variabel untuk menyimpan jadwal sholat yang diperbarui
+let currentJadwalSholat = {}; 
+let lastFetchDate = ''; // Untuk melacak kapan terakhir kali jadwal diambil
+
+if (!this.intervalSholat) this.intervalSholat = null;
+if (!this.waktusholat) this.waktusholat = {};
+if (this.intervalSholat) clearInterval(this.intervalSholat); 
+
+// Kita akan mengatur interval agar mengambil jadwal setiap hari sekali
+// Dan juga memeriksa setiap menit untuk waktu sholat
+const setupPrayerTimeChecks = async () => {
+    const sekarang = moment.tz('Asia/Jakarta');
+    const hariIni = sekarang.format('YYYY-MM-DD');
+
+    // Ambil jadwal sholat hanya sekali per hari
+    if (hariIni !== lastFetchDate) {
+        const fetchedTimes = await fetchPrayerTimes();
+        if (fetchedTimes) {
+            currentJadwalSholat = fetchedTimes;
+            lastFetchDate = hariIni;
+            console.log(`Jadwal Sholat Sukabumi untuk hari ini (${hariIni}) telah diperbarui:`, currentJadwalSholat);
+        } else {
+            console.warn('Tidak dapat memperbarui jadwal sholat. Menggunakan jadwal sebelumnya jika ada.');
+        }
+    }
+
+    // Hapus interval lama jika ada
+    if (this.intervalSholat) clearInterval(this.intervalSholat);
+
+    // Set interval untuk memeriksa waktu sholat setiap menit
+    this.intervalSholat = setInterval(async() => {
+        const cekSekarang = moment.tz('Asia/Jakarta');
+        const jamSholat = cekSekarang.format('HH:mm');
+        const cekHariIni = cekSekarang.format('YYYY-MM-DD');
+        const detik = cekSekarang.format('ss');
+
+        // Pastikan jadwal sudah diperbarui untuk hari ini
+        if (cekHariIni !== lastFetchDate) {
+            const fetchedTimes = await fetchPrayerTimes();
+            if (fetchedTimes) {
+                currentJadwalSholat = fetchedTimes;
+                lastFetchDate = cekHariIni;
+                console.log(`Jadwal Sholat Sukabumi untuk hari ini (${cekHariIni}) telah diperbarui:`, currentJadwalSholat);
+            }
+        }
+        
+        if (detik !== '00') return; // Hanya cek setiap awal menit
+
+        for (const [sholat, waktu] of Object.entries(currentJadwalSholat)) {
+            if (jamSholat === waktu && this.waktusholat[sholat] !== cekHariIni) {
+                this.waktusholat[sholat] = cekHariIni;
+                for (const [idnya, settings] of Object.entries(db.groups)) {
+                    if (settings.waktusholat) {
+                        await naze.sendMessage(idnya, { text: `Waktu *${sholat}* telah tiba, ambilah air wudhu dan segeralah shalat😇.\n\n*${waktu.slice(0, 5)}*\n_untuk wilayah Sukabumi dan sekitarnya._` }, { ephemeralExpiration: m.expiration || store?.messages[idnya]?.array?.slice(-1)[0]?.metadata?.ephemeralDuration || 0 }).catch(e => {})
+                    }
+                }
+            }
+        }
+    }, 60000); // Cek setiap 1 menit
+}; //end jadwal solat
+        
+        
+        
+		if (/^welkam$/.test(budy?.toLowerCase())){
+            m.reply(`WELKAM TU GRUP\n\n> JANGAN LUPA INTRO YAH\nLIST INTRO WAJIB ISI\n1. Nama lengkap: \n2. Nama panggilan: \n3. Tanggal lahir: \n4. Tempat lahir: \n5. Jenis kelamin: \n6. Alamat rumah: \n7. No. HP: \n8. Email: \n9. Status pernikahan: \n10. Agama: \n\nKeluarga\n11. Nama ayah: \n12. Nama ibu: \n13. Jumlah saudara kandung: \n14. Nama saudara kandung: \n15. Status keluarga (sederhana, menengah, atas): \n\nPendidikan\n16. Pendidikan terakhir: \n17. Jurusan: \n18. Nama sekolah/universitas: \n19. Tahun lulus: \n20. Prestasi akademik: \n\nKarir\n21. Pekerjaan saat ini: \n22. Jabatan: \n23. Perusahaan: \n24. Pengalaman kerja: \n25. Gaji: \n\nHobi dan Minat\n26. Hobi: \n27. Minat: \n28. Aktivitas yang disukai: \n29. Buku favorit: \n30. Film favorit: \n\nKepribadian\n31. Sifat baik: \n32. Sifat buruk: \n33. Motto hidup: \n34. Tujuan hidup: \n35. Nilai-nilai yang dianut: \n\nKesehatan\n36. Riwayat penyakit: \n37. Alergi: \n38. Kondisi kesehatan saat ini: \n39. Olahraga yang disukai: \n40. Pola makan: \n\nKeuangan\n41. Sumber pendapatan: \n42. Pengeluaran bulanan: \n43. Tabungan: \n44. Investasi: \n45. Tujuan keuangan: \n\nHubungan Sosial\n46. Jumlah teman dekat: \n47. Nama teman dekat: \n48. Aktivitas sosial: \n49. Komunitas yang diikuti: \n50. Kegiatan sukarela: \n\nTeknologi\n51. Perangkat yang digunakan (HP, laptop, dll.): \n52. Sistem operasi yang digunakan: \n53. Aplikasi favorit: \n54. Media sosial yang digunakan: \n55. Keahlian teknologi: \n\nPerjalanan\n56. Tempat yang pernah dikunjungi: \n57. Negara yang pernah dikunjungi: \n58. Pengalaman perjalanan: \n59. Tujuan perjalanan selanjutnya: \n60. Cara bepergian favorit: \n\nMakanan dan Minuman\n61. Makanan favorit: \n62. Minuman favorit: \n63. Restoran favorit: \n64. Jenis makanan yang disukai: \n65. Pola makan: \n\nMusik dan Seni\n66. Genre musik favorit: \n67. Artis favorit: \n68. Alat musik yang dimainkan: \n69. Kegiatan seni yang disukai: \n70. Karya seni favorit: \n\nTujuan dan Impian\n71. Tujuan jangka pendek: \n72. Tujuan jangka panjang: \n73. Impian: \n74. Langkah-langkah untuk mencapai tujuan: \n75. Motivasi: \n\nRefleksi Diri\n76. Hal yang disukai dari diri sendiri: \n77. Hal yang tidak disukai dari diri sendiri: \n78. Kekuatan: \n79. Kelemahan: \n80. Pelajaran hidup: \n\nLain-lain\n81. Nama hewan peliharaan: \n82. Jenis hewan peliharaan: \n83. Aktivitas yang dilakukan saat liburan: \n84. Tempat favorit: \n85. Kegiatan yang disukai saat sendirian: \n\nPengembangan Diri\n86. Kursus yang pernah diikuti: \n87. Pelatihan yang pernah diikuti: \n88. Buku pengembangan diri yang dibaca: \n89. Kegiatan pengembangan diri yang disukai: \n90. Tujuan pengembangan diri: \n\nKreativitas\n91. Kegiatan kreatif yang disukai: \n92. Karya kreatif yang pernah dibuat: \n93. Sumber inspirasi: \n94. Cara mengekspresikan kreativitas: \n95. Kegiatan seni yang disukai: \n\nAkhir\n96. Pesan untuk diri sendiri: \n97. Harapan untuk masa depan: \n98. Hal yang ingin dibanggakan: \n99. Kegiatan yang ingin dilakukan sebelum meninggal: \n100. Motto hidup:`)
+        }
+		if (/^p$/.test(budy?.toLowerCase())){
+			m.reply('MINIMAL SALAM... PAPE PA PE, LU PUNYA AGAMA KAN?? MANGKANYA SALAM');
+		}
+		if (/^ping$/.test(budy?.toLowerCase())){
+                                const used = process.memoryUsage()
+                                const cpus = os.cpus().map(cpu => {
+                                        cpu.total = Object.keys(cpu.times).reduce((last, type) => last + cpu.times[type], 0)
+                                        return cpu
+                                })
+                                const cpu = cpus.reduce((last, cpu, _, { length }) => {
+                                        last.total += cpu.total
+                                        last.speed += cpu.speed / length
+                                        last.times.user += cpu.times.user
+                                        last.times.nice += cpu.times.nice
+                                        last.times.sys += cpu.times.sys
+                                        last.times.idle += cpu.times.idle
+                                        last.times.irq += cpu.times.irq
+                                        return last
+                                }, {
+                                        speed: 0,
+                                        total: 0,
+                                        times: {
+                                                user: 0,
+                                                nice: 0,
+                                                sys: 0,
+                                                idle: 0,
+                                                irq: 0
+                                        }
+                                })
+                                let timestamp = speed()
+                                let latensi = speed() - timestamp
+                                neww = performance.now()
+                                oldd = performance.now()
+                                respon = `Kecepatan Respon ${latensi.toFixed(4)} _Second_ \n ${oldd - neww} _miliseconds_\n\nRuntime : ${runtime(process.uptime())}\n\n💻 Info Server\nRAM: ${formatp(os.totalmem() - os.freemem())} / ${formatp(os.totalmem())}\n\n_NodeJS Memory Usaage_\n${Object.keys(used).map((key, _, arr) => `${key.padEnd(Math.max(...arr.map(v=>v.length)),' ')}: ${formatp(used[key])}`).join('\n')}\n\n${cpus[0] ? `_Total CPU Usage_\n${cpus[0].model.trim()} (${cpu.speed} MHZ)\n${Object.keys(cpu.times).map(type => `- *${(type + '*').padEnd(6)}: ${(100 * cpu.times[type] / cpu.total).toFixed(2)}%`).join('\n')}\n_CPU Core(s) Usage (${cpus.length} Core CPU)_\n${cpus.map((cpu, i) => `${i + 1}. ${cpu.model.trim()} (${cpu.speed} MHZ)\n${Object.keys(cpu.times).map(type => `- *${(type + '*').padEnd(6)}: ${(100 * cpu.times[type] / cpu.total).toFixed(2)}%`).join('\n')}`).join('\n\n')}` : ''}`.trim()
+                                m.reply(respon);
+                        }
+						if (/^bot$/.test(budy?.toLowerCase())){
+							//m.reply(`Hallo kak, kenalin aku ${global.botname} aku adalah sebuah asisten yang dirancang oleh ${global.author} umtuk membantu dan menami kalian setiap saat.\n\nBerikut adalah list menunya`);
+									// Teks pesan utama
+									let mainText = `Hallo kak, kenalin aku ${global.botname} aku adalah sebuah asisten yang dirancang oleh ${global.author} umtuk membantu dan menami kalian setiap saat.\n\nBerikut adalah list menunya`;
+					
+									// Teks di bagian footer
+									let footerText = `Bot by ${global.author}`;
+					
+									// Teks pada tombol yang akan membuka daftar
+									let buttonOpenList = "List menu";
+					
+									// Membuat struktur List Message
+									let myButtonListMessage = {
+										text: mainText,
+										footer: footerText,
+										buttonText: buttonOpenList,
+										sections: [
+											{
+												title: "Pilihan Utama",
+												rows: [
+													{ title: "List semua menu", rowId: prefix + "allmenu", description: "Melihat semua menu bot yang tersedia." },
+													{ title: "List Fitur Game", rowId: prefix + "gamemenu", description: "Menampilkan menu Game"},
+													{ title: "List Fitur download", rowId: prefix + "downloadmenu", description: "Menamapilkan Download menu"},
+													{ title: "list Fitur Ai", rowId: prefix + "aimenu", description: "Menampilkan fitur Ai yang tersedia" },
+													{ title: "Kontak Admin", rowId: prefix + "owner", description: "Menghubungi pemilik bot"},
+												]
+											},
+											{
+												title: "Pilihan pribadi", // Judul untuk bagian kedua
+												rows: [
+													{ title: "melihat profile", rowId: prefix + "profile", description: "Menampilkan semua perintah bot" },
+													{ title: "claim reward harian", rowId: prefix + "claim", description: "Informasi mengenai bot" },
+												]
+											}
+										]
+									}
+					
+									// Mengirim List Message
+									await naze.sendMessage(m.chat, myButtonListMessage);
+						}
 		// Cek Expired
 		checkExpired(premium);
 		checkExpired(sewa, naze);
@@ -592,7 +806,7 @@ module.exports = naze = async (naze, m, msg, store, groupCache) => {
 						const { data } = await axios.get(url, { responseType: 'arraybuffer' });
 						let { key } = await m.reply({ image: data, caption: `♟️CHESS GAME (vs BOT)\n\nLangkahmu: ${from} → ${to}\nLangkah bot: ${botMove.from} → ${botMove.to}\n\nGiliranmu berikutnya!\nExample: e2 e4`, mentions: [m.sender] });
 						game.id = key.id;
-						break;
+						break
 					} catch (e) {}
 				}
 			} else if (game.time && (Date.now() - game.time >= 3600000)) {
@@ -630,7 +844,7 @@ module.exports = naze = async (naze, m, msg, store, groupCache) => {
 							let { key } = await m.reply({ image: data, caption: `♟️CHESS GAME\n\nGiliran: @${nextPlayer.split('@')[0]}\n\nReply Pesan Ini untuk lanjut bermain!\nExample: from to -> b1 c3`, mentions: [nextPlayer] });
 							chess[m.chat].turn = nextPlayer
 							chess[m.chat].id = key.id;
-							break;
+							break
 						} catch (e) {}
 					}
 				}
@@ -721,20 +935,1420 @@ module.exports = naze = async (naze, m, msg, store, groupCache) => {
 			user.afkTime = -1
 			user.afkReason = ''
 		}
+       //badwordif (m.isGroup) { // Hanya berlaku di dalam grup
+    const badwordFile = './database/badword.json';
+    let badwordData;
+    try {
+        badwordData = JSON.parse(fs.readFileSync(badwordFile, 'utf-8'));
+    } catch (e) {
+        console.error("Error reading badword.json, initializing empty object:", e);
+        // Jika file tidak ada atau rusak, inisialisasi sebagai objek kosong
+        badwordData = {};
+        fs.writeFileSync(badwordFile, JSON.stringify({}, null, 2), 'utf-8');
+    }
+
+    // Memeriksa apakah fitur badword aktif untuk grup ini
+    // dan jika pengirim pesan BUKAN owner bot (!isCreator)
+    // dan BUKAN admin grup (!m.isAdmin)
+    // dan bot ADALAH admin grup (m.isBotAdmin) agar bisa menghapus pesan.
+    if (badwordData[m.chat] && badwordData[m.chat].active && !isCreator && !m.isAdmin) {
+        
+        // Periksa apakah bot adalah admin grup sebelum melanjutkan
+        // Ini adalah langkah penting agar bot memiliki izin untuk menghapus pesan
+        if (!m.isBotAdmin) {
+            // Jika bot bukan admin, fitur penghapusan pesan tidak dapat dilakukan.
+            // Anda bisa tambahkan log atau pesan balasan (opsional, untuk debugging)
+            // Contoh: console.log(`Bot bukan admin di grup ${m.metadata.subject}, tidak bisa menghapus pesan badword.`);
+            // m.reply('Fitur antibadword aktif, tapi bot bukan admin dan tidak bisa menghapus pesan.'); // Jika ingin ada notifikasi
+            return; // Hentikan proses jika bot bukan admin
+        }
+
+        const badwords = badwordData[m.chat].badwords || []; // Ambil daftar badword untuk grup
+        const messageText = m.text ? m.text.toLowerCase() : ''; // Pastikan m.text ada dan ubah ke lowercase
+
+        // Periksa apakah pesan mengandung salah satu kata terlarang
+        const containsBadword = badwords.some(word => messageText.includes(word));
+
+        if (containsBadword) {
+            // Hapus pesan yang mengandung badword
+            await naze.sendMessage(m.chat, { 
+                delete: { 
+                    remoteJid: m.chat, 
+                    fromMe: false, 
+                    id: m.id, 
+                    participant: m.sender 
+                }
+            });
+            
+            // Kirim pesan balasan yang menginformasikan penghapusan (mengikuti pola antitoxic hitori-bot-js)
+            await naze.relayMessage(m.chat, { 
+                extendedTextMessage: { 
+                    text: `Terdeteksi @${m.sender.split('@')[0]} Mengirim Pesan Dengan Kata Terlarang.\nMohon gunakan bahasa yang sopan.`, 
+                    contextInfo: { 
+                        mentionedJid: [m.key.participant], // Mention pengirim pesan
+                        isForwarded: true, 
+                        forwardingScore: 1, 
+                        quotedMessage: { 
+                            conversation: '*Anti Badword❗*' // Pesan yang dikutip di balasan
+                        }, 
+                        ...m.key // Menggunakan kunci pesan asli untuk konteks
+                    }
+                }
+            }, {});
+        }
+    }
+
+		if (body.startsWith('downloadmp4_') || body.startsWith('downloadmp3_')) {
+			// Memecah buttonId untuk mendapatkan tipe, URL, dan judul
+			const parts = body.split('_');
+			const type = parts[0].replace('download', ''); // Akan menjadi 'mp4' atau 'mp3'
+			const url = parts[1];
+			const title = parts.slice(2).join('_');
 		
-		
-		switch(command) {
-			// Tempat Add Case
-			case '19rujxl1e': {
-				console.log('.')
-			}
-			break
-			case 'uji': {
-				console.log(args[0])
-				naze.appendResponseMessage(m, args[0])
-			}
-			break
+			if (type === 'mp4') {
+				await m.reply(`Mengirim video "${title}"...`);
+				// Mengirim file video sebagai dokumen
+				await naze.sendMessage(m.chat, { document: { url: url }, mimetype: 'video/mp4', fileName: `${title}.mp4` }, { quoted: m });
+			} else if (type === 'mp3') {
+				await m.reply(`Mengirim audio "${title}"...`);
+				// Mengirim file audio sebagai dokumen
+				await naze.sendMessage(m.chat, { document: { url: url }, mimetype: 'audio/mpeg', fileName: `${title}.mp3` }, { quoted: m });
+			} return }
+
+			//shop case\
 			
+	
+
+	
+switch (command) {
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// ... di dalam switch(command) { ...
+
+case 'shop': {
+	 m.reply(`Selamat datang ${m.pushName ? m.pushName : 'Tanpa Nama'}
+di toko ${shopName}, selamat berbelanja.
+╭──❍「 *MENU SHOP* 」❍
+│${setv} ${prefix}panel
+│${setv} ${prefix}panelprivate
+│${setv} ${prefix}panelpublic
+│${setv} ${prefix}katalog
+│${setv} ${prefix}topup
+│${setv} ${prefix}pulsa
+│${setv} ${prefix}tokenlistrik
+│${setv} ${prefix}ff
+│${setv} ${prefix}ml
+│${setv} ${prefix}pubg
+│${setv} ${prefix}public katalog
+│${setv} ${prefix}member 
+│${setv} ${prefix}reseller
+│${setv} ${prefix}admin
+│${setv} ${prefix}manager
+│${setv} ${prefix}addjabatan
+│${setv} ${prefix}setrole
+│${setv} ${prefix}deljabatan
+│${setv} ${prefix}listjabatan
+│${setv} ${prefix}adminpanel
+│${setv} ${prefix}reseller panel
+│${setv} ${prefix}ptpanel
+│${setv} ${prefix}stor
+│${setv} ${prefix}jadibotv1
+│${setv} ${prefix}lamarkerja
+│${setv} ${prefix}listkaryawan
+│${setv} ${prefix}donasi
+│${setv} ${prefix}addsewa
+│${setv} ${prefix}delsewa
+│${setv} ${prefix}listsewa
+╰──────❍`); } 
+		break
+		case 'public':
+            if (!isShopRegistered) return m.reply(`Anda belum terdaftar di sistem shop. Silakan hubungi admin untuk mendaftar.`);
+            m.reply(`Ini adalah fitur *Shop Public* yang dapat diakses oleh semua pengguna yang terdaftar.\n\nContoh: Menampilkan daftar produk umum, informasi kontak.`);
+            // setLimit(m, db); // Aktifkan jika fitur ini mengonsumsi limit
+            break
+
+        case 'member':
+            if (!isShopMember) return m.reply(`Anda tidak memiliki akses ke fitur *Shop Member*. Peran Anda: *${userShopRole.toUpperCase()}*`);
+            // --- Implement Shop Member Features here ---
+            m.reply(`Ini adalah fitur *Shop Member*.\n\nContoh: Diskon khusus member, akses katalog member, notifikasi pre-order.`);
+            // setLimit(m, db);
+            break
+
+        case 'reseller':
+            if (!isShopReseller) return m.reply(`Anda tidak memiliki akses ke fitur *Shop Reseller*. Peran Anda: *${userShopRole.toUpperCase()}*`);
+            // --- Implement Shop Reseller Features here ---
+            m.reply(`Ini adalah fitur *Shop Reseller*.\n\nContoh: Harga reseller, tools promosi, laporan komisi.`);
+            // setLimit(m, db);
+            break
+
+        case 'admin':
+            if (!isShopAdmin) return m.reply(`Anda tidak memiliki akses ke fitur *Shop Admin*. Peran Anda: *${userShopRole.toUpperCase()}*`);
+            // --- Implement Shop Admin Features here ---
+            m.reply(`Ini adalah fitur *Shop Admin*.\n\nContoh: Manajemen stok, verifikasi pesanan, pengaturan harga.`);
+            // setLimit(m, db);
+            break
+
+        case 'manager':
+            if (!isShopManager) return m.reply(`Anda tidak memiliki akses ke fitur *Shop Manager*. Peran Anda: *${userShopRole.toUpperCase()}*`);
+            // --- Implement Shop Manager Features here ---
+            m.reply(`Ini adalah fitur *Shop Manager*.\n\nContoh: Laporan penjualan harian/bulanan, pengaturan kebijakan shop, akses log.`);
+            // setLimit(m, db);
+            break
+
+        // --- Perintah Manajemen Shop (Hanya Admin Shop atau Owner Bot) ---
+        case 'addjabatan':
+            if (!isShopAdmin && !isCreator) return m.reply(`Hanya Admin Shop atau Owner bot yang bisa menambahkan pengguna ke sistem shop.`);
+            // Expected format: .shop add <nomor>|<nama>|<bagian>
+            if (args.length < 2 || !args.slice(1).join(' ').includes('|')) return m.reply(`Format salah. Contoh: ${prefix}shop add 6281234567890|Nama Pengguna|member`);
+            const addParts = args.slice(1).join(' ').split('|').map(s => s.trim());
+            if (addParts.length !== 3) return m.reply(`Format tidak lengkap. Gunakan: ${prefix}shop add <nomor>|<nama>|<peran>`);
+
+            const [numberToAdd, nameToAdd, roleToAdd] = addParts;
+            const jidToAdd = numberToAdd.replace(/[^0-9]/g, '') + '@s.whatsapp.net';
+
+            if (!shopRoles.includes(roleToAdd.toLowerCase())) return m.reply(`Peran '${roleToAdd}' tidak valid. Gunakan: pelanggan, member, reseller, admin, manager.`);
+            
+            // Verifikasi nomor WhatsApp
+            const onWaAdd = await naze.onWhatsApp(jidToAdd);
+            if (!onWaAdd.length > 0) return m.reply('Nomer tersebut tidak terdaftar di WhatsApp!');
+
+            if (!global.db.shop.users) global.db.shop.users = {}; // Inisialisasi jika belum ada
+            global.db.shop.users[jidToAdd] = {
+                name: nameToAdd,
+                bagian: roleToAdd.toLowerCase()
+            };
+            // fs.writeFileSync('./database/database.json', JSON.stringify(global.db, null, 2)); // Asumsi sudah ada mekanisme autosave atau manual save DB
+            m.reply(`Pengguna *${nameToAdd}* (@${jidToAdd.split('@')[0]}) berhasil ditambahkan dengan peran *${roleToAdd.toUpperCase()}* ke sistem shop.`);
+            break
+        
+        case 'setrole':
+            if (!isShopAdmin && !isCreator) return m.reply(`Hanya Admin Shop atau Owner bot yang bisa mengubah peran pengguna shop.`);
+            // Expected format: .shop setrole <nomor>|<peran_baru>
+            if (args.length < 2 || !args.slice(1).join(' ').includes('|')) return m.reply(`Format salah. Contoh: ${prefix}shop setrole 6281234567890|admin`);
+            const setRoleParts = args.slice(1).join(' ').split('|').map(s => s.trim());
+            if (setRoleParts.length !== 2) return m.reply(`Format tidak lengkap. Gunakan: ${prefix}shop setrole <nomor>|<peran_baru>`);
+
+            const [numberToSetRole, newRole] = setRoleParts;
+            const jidToSetRole = numberToSetRole.replace(/[^0-9]/g, '') + '@s.whatsapp.net';
+
+            if (!global.db.shop.users?.[jidToSetRole]) return m.reply(`Pengguna @${jidToSetRole.split('@')[0]} tidak terdaftar di sistem shop.`);
+            if (!shopRoles.includes(newRole.toLowerCase())) return m.reply(`Peran '${newRole}' tidak valid. Gunakan: pelanggan, member, reseller, admin, manager.`);
+
+            global.db.shop.users[jidToSetRole].bagian = newRole.toLowerCase();
+            m.reply(`Peran pengguna @${jidToSetRole.split('@')[0]} berhasil diubah menjadi *${newRole.toUpperCase()}*.`);
+            break
+
+        case 'delljabatan':
+            if (!isShopAdmin && !isCreator) return m.reply(`Hanya Admin Shop atau Owner bot yang bisa menghapus pengguna dari sistem shop.`);
+            // Expected format: .shop del <nomor>
+            if (args.length < 2) return m.reply(`Format salah. Contoh: ${prefix}shop del 6281234567890`);
+            const numberToDel = args[1].replace(/[^0-9]/g, '') + '@s.whatsapp.net';
+
+            if (!global.db.shop.users?.[numberToDel]) return m.reply(`Pengguna @${numberToDel.split('@')[0]} tidak terdaftar di sistem shop.`);
+
+            delete global.db.shop.users[numberToDel];
+            m.reply(`Pengguna @${numberToDel.split('@')[0]} berhasil dihapus dari sistem shop.`);
+            break
+
+        case 'listjabatan':
+            if (!isShopAdmin && !isCreator) return m.reply(`Hanya Admin Shop atau Owner bot yang bisa melihat daftar pengguna shop.`);
+            let shopListText = `*-- Daftar Pengguna Shop --*\n\n`;
+            if (global.db.shop?.users && Object.keys(global.db.shop.users).length > 0) {
+                for (const jid in global.db.shop.users) {
+                    const userData = global.db.shop.users[jid];
+                    shopListText += `*@${jid.split('@')[0]}*\n`;
+                    shopListText += `  Nama: ${userData.name}\n`;
+                    shopListText += `  Peran: *${userData.bagian.toUpperCase()}*\n\n`;
+                }
+                m.reply(shopListText, { mentions: Object.keys(global.db.shop.users) });
+            } else {
+                m.reply(`Belum ada pengguna yang terdaftar di sistem shop.`);
+            }
+            break
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+case 'daftar': {
+                if (db.users[m.sender].register) {
+                    return m.reply('Kamu sudah terdaftar!');
+                }
+
+                const argsArray = text.split(' ');
+                if (argsArray.length < 3) {
+                    return m.reply(`Format salah. Gunakan: ${prefix}daftar nama umur asal_daerah\nContoh: ${prefix}daftar Budi 20 Jakarta`);
+                }
+
+                const userName = argsArray[0];
+                const userAge = parseInt(argsArray[1]);
+                const userOrigin = argsArray.slice(2).join(' ');
+
+                if (isNaN(userAge) || userAge <= 0) {
+                    return m.reply('Umur harus berupa angka positif.');
+                }
+
+                db.users[m.sender].register = true;
+                db.users[m.sender].name = userName;
+                db.users[m.sender].age = userAge;
+                db.users[m.sender].origin = userOrigin;
+                db.users[m.sender].level = 0; // Level awal
+                db.users[m.sender].exp = 0;    // EXP awal
+
+                m.reply(`Pendaftaran berhasil! Selamat datang, ${userName} (umur ${userAge}, dari ${userOrigin}).`);
+            }
+            break
+	case 'play2':
+case 'playmusic':
+    if (!q) return m.reply(`*Contoh:* ${prefix + command} https://www.youtube.com/watch?v=dQw4w9WgXcQ`);
+    if (!isUrl(q) || !q.includes('youtu.be') && !q.includes('youtube.com')) return m.reply('Link YouTube tidak valid!');
+
+    m.reply('wait');
+
+    try {
+        const apiUrl = `https://api.saipulanuar.eu.org/api/download/ytdl?url=${encodeURIComponent(q)}`;
+
+        const { data: responseData } = await axios.get(apiUrl);
+
+        if (responseData.status && responseData.result) {
+            const { title, thumbnail, mp4, mp3 } = responseData.result;
+
+            const buttons = [
+                {buttonId: `downloadmp4_${mp4}_${title}`, buttonText: {displayText: `Download MP4`}, type: 1},
+                {buttonId: `${prefix}ytmp3 ${encodeURIComponent(q)}`, buttonText: {displayText: `Download MP3:`}, type: 1}
+            ];
+
+            const buttonMessage = {
+                image: { url: thumbnail },
+                caption: `*Judul:* ${title}\n*Oleh:* ${responseData.result.author}\n\nPilih format unduhan di bawah ini:`,
+                footer: botname,
+                buttons: buttons,
+                headerType: 4
+            };
+
+            await naze.sendButtonMsg(m.chat, buttonMessage, { quoted: m });
+        } else {
+            m.reply('Gagal mendapatkan informasi unduhan dari API.');
+        }
+    } catch (e) {
+        console.error(e);
+        m.reply('Terjadi kesalahan saat memproses permintaan unduhan YouTube.');
+		
+    }
+    break 
+    case "chstalk": case 'saluranstalk': case 'intipsaluran': case 'intipch':
+    case "cekch": case 'infoch': case 'infochanel':
+        {
+          if (!isLimit) return m.reply(mess.limit);
+          if (!text)
+            return m.reply(
+              `Example: ${
+                prefix + command
+              } https://whatsapp.com/channel/0000000000000000000000`
+            );
+          let _saluran = /whatsapp\.com\/channel\/([\w\d]*)/;
+          let channelIdMatch = text.match(_saluran);
+
+          if (!channelIdMatch) {
+            return m.reply(
+              "Link Channel WhatsApp tidak valid! Pastikan format link benar."
+            );
+          }
+
+          const channelId = channelIdMatch[1]; // Cukup ambil ID alfanumeriknya saja
+
+          console.log(
+            `[DEBUG] Channel ID yang akan dicari (revisi): ${channelId}`
+          );
+          m.reply(mess.wait);
+          try {
+            const n = await naze.newsletterMsg(channelId);
+            console.log(`[DEBUG] Hasil dari newsletterMsg (n) (revisi):`, n);
+
+            if (n && n.thread_metadata) {
+              const channelName = n.thread_metadata.name.text;
+              const subscriberCount = n.thread_metadata.subscribers_count;
+              const idChannel = n.id; // Ini akan menjadi JID lengkap channel (dengan @newsletter)
+              const channelDescription =
+                n.thread_metadata.description?.text || "Tidak ada deskripsi.";
+              const creationTime = new Date(
+                n.thread_metadata.creation_time * 1000
+              ).toLocaleString("id-ID"); // Konversi dari detik ke ms
+
+              // Mendapatkan URL gambar profil
+              const host = n.thread_metadata.host;
+              const directPath = n.thread_metadata.preview?.direct_path;
+              let imageUrl = null;
+
+              if (host && directPath) {
+                imageUrl = host + directPath;
+              }
+
+              // Membangun teks utama untuk pesan
+              let replyTextContent =
+                `*[ INFORMATION CHANNEL ]*\n\n` +
+                `*📚 Nama Channel:* ${channelName}\n` +
+                `*🆔 ID Channel:* ${idChannel}\n` +
+                `*👥 Jumlah Subscriber:* ${subscriberCount.toLocaleString(
+                  "id-ID"
+                )}\n` +
+                `*📝 Deskripsi:* \n${channelDescription}\n\n\n` +
+                `*🗓️ Dibuat Pada:* ${creationTime}\n> by: ${botname}`;
+
+              // Membuat tombol "COPY ID CHANNEL" dengan format yang didukung
+              const buttons = [
+                {
+                  buttonId: `${prefix}copy ${idChannel}`, // ID yang akan dikirim bot ketika tombol ditekan
+                  buttonText: { displayText: "COPY ID CHANNEL" },
+                  type: 1, // Tipe tombol "reply"
+                },
+                {
+                  buttonId: `${prefix}copy ${channelDescription}`, // ID yang akan dikirim bot ketika tombol ditekan
+                  buttonText: { displayText: "COPY DESKRIPSI" },
+                  type: 1, // Tipe tombol "reply"
+                },
+              ];
+
+              // Konten untuk sendButtonMsg
+              const content = {
+                text: replyTextContent, // Teks utama pesan
+                footer: `Tekan tombol di bawah untuk menyalin informasi.`, // Teks footer di bawah tombol
+                buttons: buttons,
+                // Jika ada gambar, tambahkan objek image ke dalam content
+                ...(imageUrl ? { image: { url: imageUrl } } : {}),
+              };
+
+              // Opsi untuk sendButtonMsg (untuk quoted message)
+              const options = { quoted: m };
+
+              await naze.sendButtonMsg(m.chat, content, options);
+              setLimit(m, db);
+            } else { 
+                m.reply("Tidak dapat menemukan informasi untuk channel ini atau link tidak valid.");
+            }
+          } catch (e) {
+            if (e?.status === 404 || e?.message?.includes("404")) {
+              m.reply("Channel WhatsApp tidak ditemukan atau link tidak valid.");
+            } else {
+              m.reply("Terjadi kesalahan saat mengambil informasi channel. Silakan coba lagi.");
+            }
+          }
+        }
+        break
+
+      case "copy":
+        {
+          if (!text) {
+            return m.reply(`Example: ${prefix + command} Hello World!`);
+          }
+          await m.reply(text);
+        }
+        break
+    case 'ffstalk':
+case 'ffstalker': {
+    if (!isLimit) return m.reply(mess.limit); // Cek limit pengguna
+    if (!text) return m.reply(`Example: ${prefix + command} 1821481021`); // Meminta ID pemain
+    
+    // Validasi dasar untuk ID Free Fire (biasanya angka, panjang tertentu)
+    if (isNaN(text) || text.length < 5 || text.length > 15) { 
+        return m.reply('ID Free Fire tidak valid. Harap masukkan ID berupa angka dengan panjang yang sesuai.');
+    }
+
+    m.reply(mess.wait); // Pesan tunggu
+
+    try {
+        const saipulAnuarApiUrl = 'https://api.saipulanuar.eu.org/api/stalkgame/ffstalk1'; 
+
+        const response = await axios.get(saipulAnuarApiUrl, {
+            params: {
+                userId: text // Mengirim ID pemain sebagai parameter 'userId' sesuai API
+            },
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'application/json'
+            }
+        });
+
+        const data = response.data;
+
+        // Pastikan status true dan properti result ada dan memiliki Username
+        if (data.status === true && data.result && data.result.Username) {
+            const ffId = data.result.id;
+            const ffUsername = data.result.Username;
+            const authorApi = data.author || 'Tidak Diketahui';
+
+            const responseText = `
+*───「 FREE FIRE STALK 」───*
+*• ID Pemain:* ${ffId}
+*• Username:* ${ffUsername}
+
+> by ${global.author}
+*──────────────────────*
+`;
+            await m.reply(responseText);
+            setLimit(m, db); // Kurangi limit setelah sukses
+
+        } else {
+            // Jika status false atau tidak ada data yang diharapkan
+            return m.reply(`Tidak dapat menemukan informasi untuk ID Free Fire: ${text}. Pastikan ID benar atau coba lagi nanti. Pesan API: ${data.message || 'Tidak ada pesan error spesifik.'}`);
+        }
+
+    } catch (ffStalkError) {
+        console.error('Error in FF Stalk:', ffStalkError.response ? ffStalkError.response.data : ffStalkError.message);
+        let errorMessage = 'Terjadi kesalahan saat melakukan stalk ID Free Fire.';
+
+        if (ffStalkError.response) {
+            // Tangani respons error HTTP (misalnya 400, 404, 500)
+            errorMessage += ` Status: ${ffStalkError.response.status}. Pesan: ${JSON.stringify(ffStalkError.response.data.message || ffStalkError.response.data)}`;
+            if (ffStalkError.response.status === 404) {
+                errorMessage = `ID Free Fire ${text} tidak ditemukan oleh API. Pastikan ID benar.`;
+            } else if (ffStalkError.response.status === 400) {
+                 errorMessage = `Permintaan tidak valid untuk ID Free Fire ${text}. Pastikan format ID benar.`;
+            }
+        } else if (ffStalkError.code === 'ENOTFOUND') {
+            errorMessage = `Tidak dapat menghubungi API saipulanuar.eu.org. Periksa koneksi internet bot atau URL API.`;
+        }
+
+        m.reply(errorMessage);
+    }
+}
+break
+
+    case 'deletebadword': case 'delbadword': {
+      const badwordFile = './database/badword.json';
+      let badwordData = JSON.parse(fs.readFileSync(badwordFile, 'utf-8'));
+
+      if (!m.isGroup) return m.reply('Fitur ini hanya bisa digunakan di grup.');
+      if (!m.isAdmins && !isCreator) return m.reply('Fitur ini hanya untuk admin grup atau owner bot.');
+
+      if (!badwordData[m.chat]) {
+        return m.reply('Tidak ada daftar badword di grup ini.');
+      }
+
+      if (!text) {
+        return m.reply('Masukkan badword yang ingin dihapus, pisahkan dengan koma jika lebih dari satu.');
+      }
+
+      let badwordsToDelete = text.split(',').map(word => word.trim().toLowerCase());
+
+      let currentBadwords = badwordData[m.chat].badwords || [];
+
+      let deletedBadwords = [];
+      let notFoundBadwords = [];
+
+      badwordsToDelete.forEach(word => {
+        const index = currentBadwords.indexOf(word);
+        if (index > -1) {
+          currentBadwords.splice(index, 1);
+          deletedBadwords.push(word);
+        } else {
+          notFoundBadwords.push(word);
+        }
+      });
+
+      badwordData[m.chat].badwords = currentBadwords;
+      fs.writeFileSync(badwordFile, JSON.stringify(badwordData, null, 2), 'utf-8');
+
+      let responseMessage = '';
+
+      if (deletedBadwords.length > 0) {
+        responseMessage += `Badword berhasil dihapus: ${deletedBadwords.join(', ')}\n`;
+      }
+
+      if (notFoundBadwords.length > 0) {
+        responseMessage += `Badword tidak ditemukan: ${notFoundBadwords.join(', ')}\n`;
+      }
+
+      m.reply(responseMessage.trim());
+    }
+    break
+
+    case 'listbadword': {
+      const badwordFile = './database/badword.json';
+      let badwordData = JSON.parse(fs.readFileSync(badwordFile, 'utf-8'));
+      
+      if (!m.isGroup) return m.reply('Hanya dapat digunakan di grup');
+      if (!m.isAdmins && !isCreator) return m.reply('Fitur ini hanya untuk admin grup atau owner bot.');
+
+      if (!badwordData[m.chat]) {
+        return m.reply('Tidak ada daftar badword di grup ini.');
+      }
+
+      let gcname = m.metadata.subject; // Menggunakan m.metadata.subject
+      let badwords = badwordData[m.chat].badwords || [];
+
+      if (badwords.length === 0) {
+        return m.reply(`Grup ${gcname} tidak memiliki daftar badword.`);
+      }
+
+      let badwordList = badwords.map((word, index) => `${index + 1}. ${word}`).join('\n');
+
+      m.reply(`
+List badword grup ${gcname}:
+
+${badwordList}
+      `);
+    }
+    break
+
+    case 'antibadword': {
+      const idgc = m.chat;
+      const badwordFile = './database/badword.json';
+      let badwordData = JSON.parse(fs.readFileSync(badwordFile, 'utf-8'));
+
+      if (!isCreator) return m.reply('Khusus Owner');
+      if (!m.isGroup) return m.reply('Khusus Grup');
+      
+      if (!badwordData[idgc]) {
+        badwordData[idgc] = { badwords: [], active: false };
+      }
+
+      if (!text || (text.toLowerCase() !== 'on' && text.toLowerCase() !== 'off')) return m.reply(`
+  Gunakan perintah berikut
+  
+  ${prefix + command} on/off
+  `);
+
+      if (text.toLowerCase() === 'on') {
+        if (badwordData[idgc]?.active) return m.reply('Sudah aktif di grup ini.');
+        badwordData[idgc].active = true;
+      }
+
+      if (text.toLowerCase() === 'off') {
+        if (!badwordData[idgc]?.active) return m.reply('Sudah nonaktif di grup ini.');
+        badwordData[idgc].active = false;
+      }
+
+      fs.writeFileSync(badwordFile, JSON.stringify(badwordData, null, 2), 'utf-8');
+      m.reply(`Fitur antibadword telah ${text.toLowerCase() === 'on' ? 'diaktifkan' : 'dinonaktifkan'} untuk grup ini.`);
+    }
+    break
+
+    case 'addbadword': {
+      const fs = require('fs');
+      const badwordFile = './database/badword.json';
+      
+      if (!m.isGroup) return m.reply('Fitur ini hanya bisa digunakan di grup.');
+      if (!m.isAdmins && !isCreator) return m.reply('Fitur ini hanya untuk admin grup atau owner bot.');
+
+      if (!text) return m.reply('Masukkan list badword, pisahkan dengan koma jika lebih dari satu.');
+
+      try {
+        const idgc = m.chat; 
+        const newBadwords = text.split(',').map(word => word.trim().toLowerCase());
+
+        let badwordData = JSON.parse(fs.readFileSync(badwordFile, 'utf-8'));
+
+        if (!badwordData[idgc]) {
+          badwordData[idgc] = { badwords: [], active: false };
+        }
+
+        newBadwords.forEach((word) => {
+          if (!badwordData[idgc].badwords.includes(word)) {
+            badwordData[idgc].badwords.push(word);
+          }
+        });
+
+        fs.writeFileSync(badwordFile, JSON.stringify(badwordData, null, 2));
+
+        return m.reply(`Badword(s) berhasil ditambahkan untuk grup *${m.metadata.subject}*`); // Menggunakan m.metadata.subject
+      } catch (e) {
+        console.error(e);
+        return m.reply('Terjadi kesalahan saat menambahkan badword');
+      }
+    }
+    break
+                case 'ownerlist':
+case 'listowner': { // Anda bisa menggunakan 'listowner' sebagai alias juga
+    let teksnya = '╭──❍「 DAFTAR OWNER BOT 」❍\n';
+
+    if (global.owner.length === 0) {
+        // Jika tidak ada owner yang terdaftar
+        teksnya += '│• Tidak ada owner yang terdaftar saat ini.\n';
+    } else {
+        // Iterasi melalui setiap owner di global.owner
+        for (let i = 0; i < global.owner.length; i++) {
+            teksnya += `│• ${i + 1}. @${global.owner[i]}\n`;
+        }
+    }
+    
+    m.reply(teksnya + '╰──────❍'); // Balas pesan dengan daftar owner
+}break
+                case "delowner":
+case "delown": {
+    if (!isCreator) return m.reply(mess.owner)
+
+    let numberToDelete;
+    if (m.quoted) {
+        numberToDelete = m.quoted.sender.replace(/@s\.whatsapp\.net$/, '');
+    } else if (args[0]) {
+        numberToDelete = args[0].replace(/[^0-9]/g, '');
+    } else {
+        return m.reply("Silakan berikan nomor yang ingin dihapus atau balas pesan orang yang ingin dihapus dari owner.");
+    }
+
+    if (numberToDelete === m.sender.replace(/@s\.whatsapp\.net$/, '')) {
+        return m.reply("Anda tidak bisa menghapus diri sendiri dari daftar owner.");
+    }
+
+    const index = global.owner.indexOf(numberToDelete);
+
+    if (index !== -1) {
+        global.owner.splice(index, 1);
+        const ownerFilePath = './database/owner.json';
+
+        try {
+            fs.writeFileSync(ownerFilePath, JSON.stringify(global.owner, null, 2));
+            m.reply(`Nomor ${numberToDelete} berhasil dihapus dari daftar owner.`);
+        } catch (e) {
+            console.error("Gagal menyimpan owner ke file:", e);
+            m.reply("Terjadi kesalahan saat menghapus owner. Silakan coba lagi nanti.");
+        }
+    } else {
+        m.reply(`Nomor ${numberToDelete} tidak ditemukan dalam daftar owner.`);
+    }}
+    break
+            case "addowner": case "addown": {
+    if (!isCreator) return m.reply(mess.owner)
+    const allowedPrefixes = [ //code add owner dengan code awalanya
+            '1', '7', '20', '27', '30', '31', '32', '33', '34', '39',
+            '44', '49', '52', '54', '55', '56', '60', '61', '62', '63',
+            '65', '66', '81', '82', '86', '91', '92', '90', '234', '971'
+        ];
+    let numberToAdd;
+    if (m.quoted) {
+        numberToAdd = m.quoted.sender.replace(/@s\.whatsapp\.net$/, '');
+    } else if (args[0]) {
+        numberToAdd = args[0].replace(/[^0-9]/g, '');
+        if (!allowedPrefixes.some(prefix => numberToAdd.startsWith(prefix))) {
+            return m.reply(`Nomor harus diawali dengan kode negara yang valid (misalnya 62xxxx).`);
+        }
+    } else {
+        return m.reply("Silakan berikan nomor baru atau balas pesan orang yang ingin ditambahkan sebagai owner.");
+    }
+
+    if (global.owner.includes(numberToAdd)) {
+        return m.reply(`Nomor ${numberToAdd} sudah menjadi owner bot.`);
+    }
+
+    global.owner.push(numberToAdd);
+    const ownerFilePath = './database/owner.json';
+
+    try {
+        fs.writeFileSync(ownerFilePath, JSON.stringify(global.owner, null, 2));
+        m.reply(`Nomor ${numberToAdd} berhasil ditambahkan ke daftar owner.`);
+    } catch (e) {
+        console.error("Gagal menyimpan owner ke file:", e);
+        m.reply("Terjadi kesalahan saat menambahkan owner. Silakan coba lagi nanti.");
+    }
+} break
+
+                case 'proses':
+            case 'wett':
+            case 'pending': {
+                if (!m.isGroup) return m.reply(mess.group) // Pastikan hanya di grup
+
+                const senderName = m.pushName || m.sender.split('@')[0]; // Nama pengirim
+                const currentDate = moment.tz('Asia/Jakarta').locale('id').format('dddd, DD MMMM YYYY');
+                const currentTime = moment.tz('Asia/Jakarta').locale('id').format('HH:mm:ss');
+
+                let note = '';
+                let targetNumber = m.sender.split('@')[0]; // Default ke nomor pengirim
+
+                // Cek jika ada pesan yang di-reply
+                if (m.quoted) {
+                    note = m.quoted.text || m.quoted.caption || 'Tidak ada catatan.';
+                    targetNumber = m.quoted.sender.split('@')[0]; // Nomor yang di-reply
+                } else if (text) {
+                    // Cek jika ada teks setelah perintah
+                    note = text;
+                } else {
+                    return m.reply(`Untuk menggunakan perintah ini, reply pesan atau tambahkan catatan setelah perintah.\nContoh: ${prefix}proses Pesanan saya sudah siap`);
+                }
+
+                const response = `
+========================
+        *PESANAN DIPROSES*
+========================
+
+\`\`\`DIPROSES: ${senderName}
+TANGGAL : ${currentDate}
+JAM     : ${currentTime}
+Catatan : ${note}\`\`\`
+
+========================
+\`\`\`    STATUS : Pending🔄\`\`\`
+========================
+
+Mohon ditunggu. Pesanan @${targetNumber} sedang di proses Admin
+
+========================
+                `;
+                
+                // Mengirim pesan dengan mention (jika ada nomor yang di-mention)
+                await naze.sendMessage(m.chat, { text: response, mentions: [targetNumber + '@s.whatsapp.net'] }, { quoted: m });
+
+            }
+            break
+            // ... (kode yang sudah ada di atasnya, sebelum case 'proses')
+
+            case 'done': // Ini adalah baris case yang akan kita ubah
+            case 'selesai':
+            case 'sukses': { // Seluruh blok ini akan diganti
+                // Kode lama fitur "PESANAN DIPROSES" akan dihapus di sini
+
+                // --- MULAI KODE BARU UNTUK FITUR PESANAN TELAH DIKIRIM ---
+                if (!m.isGroup) return m.reply(mess.group) // Pastikan hanya di grup
+
+                // Waktu dan Tanggal saat ini
+                const currentDate = moment.tz('Asia/Jakarta').locale('id').format('DD MMMM YYYY');
+                const currentTime = moment.tz('Asia/Jakarta').locale('id').format('HH:mm:ss');
+
+                let note = '';
+                let targetNumber = m.sender.split('@')[0]; // Default ke nomor pengirim
+                let mentionedJids = [m.sender]; // Default mention pengirim
+
+                // Cek jika ada pesan yang di-reply
+                if (m.quoted) {
+                    note = m.quoted.text || m.quoted.caption || 'Tidak ada catatan.';
+                    targetNumber = m.quoted.sender.split('@')[0]; // Nomor yang di-reply
+                    mentionedJids = [m.quoted.sender]; // Mention yang di-reply
+                } else if (text) {
+                    // Cek jika ada teks setelah perintah
+                    note = text;
+                } else {
+                    return m.reply(`Untuk menggunakan perintah ini, reply pesan atau tambahkan catatan setelah perintah.\nContoh: ${prefix}kirim Pesanan sudah di tangan pelanggan`);
+                }
+
+                const response = `
+========================
+    *PESANAN TELAH DIKIRIM*
+========================
+
+\`\`\`DIKIRIM : 
+TANGGAL : ${currentDate}
+JAM     : ${currentTime}
+Catatan : ${note}\`\`\`
+
+========================
+\`\`\`    STATUS : Berhasil✅\`\`\`
+========================
+
+Admin telah mengirim pesanan. Terimakasih @${targetNumber}
+ditunggu orderan selanjutnya🙏
+
+========================
+                `;
+                
+                // Mengirim pesan dengan mention yang sesuai
+                await naze.sendMessage(m.chat, { text: response, mentions: mentionedJids }, { quoted: m });
+                // --- AKHIR KODE BARU UNTUK FITUR PESANAN TELAH DIKIRIM ---
+            }
+            break
+
+                 case 'hadist': {
+                const HADITH_COLLECTIONS = {
+    'abu-dawud': 4419,
+    'ahmad': 4305,
+    'bukhari': 6638,
+    'darimi': 2949,
+    'ibnu-majah': 4285,
+    'malik': 1587,
+    'muslim': 4930,
+    'nasai': 5364,
+    'tirmidzi': 3625
+};
+                const slugs = Object.keys(HADITH_COLLECTIONS);
+                let targetBookSlug = '';
+                let targetNumber = 0;
+                let isRandom = false;
+
+                const usageGuide = `Gunakan perintah:\n` +
+                                 `* ${prefix + command} <slug_kitab>/<nomor_hadist> (e.g., ${prefix + command} bukhari/1)\n` +
+                                 `* ${prefix + command} <slug_kitab> (akan menampilkan hadist nomor 1 dari kitab itu, e.g., ${prefix + command} muslim)\n` +
+                                 `* ${prefix + command} <nomor_hadist> (akan menampilkan hadist dari Kitab Bukhari, e.g., ${prefix + command} 5)\n` +
+                                 `* ${prefix + command} (akan menampilkan hadist acak)\n\n` +
+                                 `Slug kitab yang tersedia:\n${slugs.map(s => `- ${s}`).join('\n')}\n\n`;
+
+                if (!text) {
+                    // Case: .hadist (random Hadith)
+                    isRandom = true;
+                    // Pilih slug secara acak dari daftar yang tersedia
+                    targetBookSlug = pickRandom(slugs);
+                    // Dapatkan jumlah maksimum Hadist untuk slug yang dipilih
+                    const maxHadith = HADITH_COLLECTIONS[targetBookSlug];
+                    // Pilih nomor Hadist acak dalam rentang yang valid (1 hingga maxHadith)
+                    targetNumber = Math.floor(Math.random() * maxHadith) + 1;
+                    m.reply(mess.wait);
+                } else {
+                    // Split input by space or slash to handle different formats
+                    const parts = text.split(/[\s/]/);
+                    
+                    if (parts.length === 1) {
+                        if (!isNaN(parts[0])) {
+                            // Jika hanya nomor, default ke Bukhari
+                            targetBookSlug = 'bukhari';
+                            targetNumber = parseInt(parts[0]);
+                        } else {
+                            // Jika hanya slug, ambil hadist nomor 1
+                            targetBookSlug = parts[0].toLowerCase();
+                            targetNumber = 1;
+                        }
+                    } else if (parts.length >= 2 && !isNaN(parts[parts.length - 1])) {
+                        // Jika ada nama kitab dan nomor hadist (e.g., "bukhari 10" atau "bukhari/10")
+                        // Gabungkan kembali bagian nama kitab jika ada spasi, lalu ubah ke slug format
+                        targetBookSlug = parts.slice(0, -1).join('-').toLowerCase(); 
+                        targetNumber = parseInt(parts[parts.length - 1]);
+                    } else {
+                        return m.reply(`Format perintah salah. ${usageGuide}`);
+                    }
+                    m.reply(mess.wait);
+                }
+
+                // Validasi slug yang dimasukkan pengguna
+                if (!slugs.includes(targetBookSlug)) {
+                    return m.reply(`Slug kitab Hadist "${targetBookSlug}" tidak dikenal atau tidak tersedia. ${usageGuide}`);
+                }
+
+                // Validasi nomor Hadist berdasarkan jumlah maksimum Hadist di koleksi tersebut
+                const maxHadithForBook = HADITH_COLLECTIONS[targetBookSlug];
+                if (targetNumber <= 0 || targetNumber > maxHadithForBook) {
+                    return m.reply(`Nomor Hadist harus positif dan tidak melebihi ${maxHadithForBook} untuk koleksi "${targetBookSlug}". ${usageGuide}`);
+                }
+
+                try {
+                    const apiUrl = `https://api.myquran.com/v2/hadits/${targetBookSlug}/${targetNumber}`;
+                    const response = await axios.get(apiUrl);
+
+                    // Periksa status dan data yang diterima dari API
+                    if (!response.data || !response.data.status || !response.data.data) {
+                        return m.reply(`Hadist ${targetBookSlug}/${targetNumber} tidak ditemukan atau terjadi kesalahan pada API.`);
+                    }
+
+                    const hadistData = response.data.data.contents;
+                    const hadistNumber = response.data.data.number;
+                    const hadistName = response.data.data.name;
+
+                    const responseText = `
+*Hadist Koleksi: ${hadistName}*
+*Nomor Hadist: ${hadistNumber}*
+${isRandom ? `_(Didapatkan secara acak dari koleksi ${hadistName})_` : ''}
+
+*Teks Arab:*
+\`\`\`
+${hadistData.arab}
+\`\`\`
+
+*Terjemahan:*
+\`\`\`
+${hadistData.id}
+\`\`\`
+`;
+                    await m.reply(responseText);
+                    setLimit(m, db); // Mengurangi limit setelah penggunaan fitur
+                } catch (error) {
+                    console.error('Error fetching Hadith:', error);
+                    m.reply(`Terjadi kesalahan saat mengambil Hadist. Pastikan slug kitab dan nomor Hadist benar. ${usageGuide}`);
+                }
+            }
+            break
+                case 'jadwalsholat': {
+                if (!text) return m.reply(`Example: ${prefix + command} jakarta`);
+
+                m.reply(mess.wait); // Menampilkan pesan tunggu
+
+                try {
+                    // 1. Mencari ID kota berdasarkan nama kota
+                    const searchCityUrl = `https://api.myquran.com/v2/sholat/kota/cari/${encodeURIComponent(text)}`;
+                    const cityResponse = await axios.get(searchCityUrl);
+
+                    if (!cityResponse.data || !cityResponse.data.status || cityResponse.data.data.length === 0) {
+                        return m.reply(`Kota "${text}" tidak ditemukan. Pastikan nama kota benar atau coba nama kota yang lebih spesifik.`);
+                    }
+
+                    // Ambil kota pertama yang paling relevan dari hasil pencarian
+                    const city = cityResponse.data.data[0];
+                    const cityId = city.id;
+                    const cityName = city.lokasi; // Gunakan nama lokasi resmi dari API
+
+                    // 2. Mendapatkan tanggal saat ini untuk API jadwal sholat
+                    const sekarang = moment.tz('Asia/Jakarta');
+                    const tahun = sekarang.format('YYYY');
+                    const bulan = sekarang.format('MM');
+                    const tanggal = sekarang.format('DD');
+
+                    // 3. Mengambil jadwal sholat menggunakan ID kota
+                    const prayerTimesUrl = `https://api.myquran.com/v2/sholat/jadwal/${cityId}/${tahun}/${bulan}/${tanggal}`;
+                    const prayerResponse = await axios.get(prayerTimesUrl);
+
+                    if (!prayerResponse.data || !prayerResponse.data.status || !prayerResponse.data.data) {
+                        return m.reply(`Gagal mendapatkan data jadwal sholat untuk ${cityName}.`);
+                    }
+
+                    const dataSholat = prayerResponse.data.data.jadwal;
+
+                    const responseText = `
+*Jadwal Sholat untuk Wilayah ${cityName}*
+*Tanggal: ${dataSholat.tanggal}*
+
+\`\`\`
+Imsak  : ${dataSholat.imsak}
+Subuh  : ${dataSholat.subuh}
+Terbit : ${dataSholat.dhuha}
+Dzuhur : ${dataSholat.dzuhur}
+Ashar  : ${dataSholat.ashar}
+Maghrib: ${dataSholat.maghrib}
+Isya   : ${dataSholat.isya}
+\`\`\`
+
+JANGAN LUPA SHOLAT YA😇
+`;
+                    await m.reply(responseText);
+                    setLimit(m, db); // Mengurangi limit setelah penggunaan fitur
+                } catch (error) {
+                    console.error('Error fetching prayer times:', error);
+                    m.reply('Terjadi kesalahan saat mengambil jadwal sholat. Mohon coba lagi nanti. Pastikan format kota benar.');
+                }
+            }
+            break
+                case 'setwelcome': case 'setleave': case 'setpromote': case 'setdemote':
+					if (args[1]) {
+						// Periksa apakah pengirim pesan adalah admin grup (tetap ada)
+						if (!m.isAdmin) return m.reply(mess.group); 
+
+						// Tambahkan pengecekan ini untuk memastikan set.text ada
+						if (!set.text) { 
+							set.text = {}; 
+						}
+
+						set.text[args[0]] = args.slice(1).join(' ');
+						m.reply(`Sukses Mengubah ${args[0].split('set')[1]} Menjadi:\n${set.text[args[0]]}`)
+					} else m.reply(`Example:\n${prefix + command} ${args[0]} Isi Pesannya\n\nMisal Dengan tag:\n${prefix + command} ${args[0]} Kepada @\nMaka akan Menjadi:\nKepada @0\n\nMisal dengan Tag admin:\n${prefix + command} ${args[0]} Dari @admin untuk @\nMaka akan Menjadi:\nDari @${m.sender.split('@')[0]} untuk @0\n\nMisal dengan Nama grup:\n${prefix + command} ${args[0]} Dari @admin untuk @ di @subject\nMaka akan Menjadi:\nDari @${m.sender.split('@')[0]} untuk @0 di ${m.metadata.subject}`)
+					break
+                case 'addlist': {
+                if (!m.isGroup) return m.reply(mess.group)
+                if (!text) return m.reply(`Example: ${prefix + command} namalist|data_yang_disimpan`)
+                let [name, data] = text.split('|')
+                if (!name || !data) return m.reply(`Format salah. Gunakan: ${prefix + command} namalist|data_yang_disimpan`)
+                
+                name = name.toLowerCase()
+                
+                if (!db.list[m.chat]) db.list[m.chat] = {}
+                
+                if (db.list[m.chat][name]) {
+                    return m.reply(`Nama list '${name}' sudah ada di grup ini. Gunakan nama lain atau hapus yang lama dengan ${prefix}dellist ${name}`)
+                }
+
+                try {
+                    const isMediaUrl = isUrl(data)
+                    if (isMediaUrl) {
+                        const fileMime = mime.lookup(data);
+                        const mediaType = fileMime ? fileMime.split('/')[0] : 'document';
+                        db.list[m.chat][name] = { type: mediaType, data: data, isUrl: true }
+                        m.reply(`Berhasil menyimpan media sebagai '${name}'. Tipe: ${mediaType}`)
+                    } else {
+                        db.list[m.chat][name] = { type: 'text', data: data, isUrl: false }
+                        m.reply(`Berhasil menyimpan teks sebagai '${name}'.`)
+                    }
+                } catch (e) {
+                    console.error('Error saving list data:', e)
+                    m.reply('Terjadi kesalahan saat menyimpan data. Pastikan URL media valid atau data tidak terlalu besar.')
+                }
+            }
+            break
+            case 'getlist': {
+                if (!m.isGroup) return m.reply(mess.group)
+                if (!text) return m.reply(`Example: ${prefix + command} namalist`)
+                
+                const name = text.toLowerCase()
+                
+                if (!db.list[m.chat] || !db.list[m.chat][name]) {
+                    return m.reply(`List dengan nama '${name}' tidak ditemukan di grup ini.`)
+                }
+                
+                const savedItem = db.list[m.chat][name]
+                
+                if (savedItem.isUrl) {
+                    try {
+                        await naze.sendFileUrl(m.chat, savedItem.data, m)
+                    } catch (e) {
+                        m.reply(`Gagal mengambil media untuk '${name}'. Mungkin URL tidak lagi valid.`)
+                    }
+                } else {
+                    m.reply(`${savedItem.data}`)
+                }
+            }
+            break
+            case 'dellist': {
+                if (!m.isGroup) return m.reply(mess.group)
+                if (!text) return m.reply(`Example: ${prefix + command} namalist`)
+                
+                const name = text.toLowerCase()
+                
+                if (!db.list[m.chat] || !db.list[m.chat][name]) {
+                    return m.reply(`List dengan nama '${name}' tidak ditemukan di grup ini.`)
+                }
+                
+                delete db.list[m.chat][name]
+                m.reply(`List '${name}' berhasil dihapus dari grup ini.`)
+            }
+            break
+           case 'list': {
+                if (!m.isGroup) return m.reply(mess.group)
+                
+                if (!db.list[m.chat] || Object.keys(db.list[m.chat]).length === 0) {
+                    return m.reply('Belum ada list yang tersimpan di grup ini.')
+                }
+                
+                let listNames = Object.keys(db.list[m.chat])
+                let responseText = `*Daftar List Tersimpan di Grup Ini:*\n\n`
+                listNames.forEach((name, index) => {
+                    const item = db.list[m.chat][name]
+                    responseText += `${index + 1}. ${name} (Tipe: ${item.type})\n`
+                })
+                responseText += `\nUntuk melihat isi list, gunakan: ${prefix}getlist nama_list`
+                
+                m.reply(responseText)
+            }
+            break
+                case "jadibotv1": {
+        if (!m.isGroup) return m.reply(mess.group);
+        if (!isPremium) return m.reply(mess.ress);
+
+        let parts = text.split(",");
+        if (parts.length < 3) {
+            return m.reply(`*Format salah!*
+                Penggunaan:
+                ${prefix + command} <ukuran_GB/MB/unli>,<username>,<nomer_target>
+                Contoh: ${prefix + command} 16gb,izhar,62*******
+                Contoh: ${prefix + command} unli,izhar,62*******`);
+        }
+
+        let sizeInput = parts[0].toLowerCase();
+        let username = parts[1];
+        let u = m.quoted ? m.quoted.sender : parts[2] ? parts[2].replace(/[^0-9]/g, "") + "@s.whatsapp.net" : m.mentionedJid[0];
+
+        // --- Inisialisasi variabel untuk RAM, Disk, CPU ---
+        let memo; // Akan menyimpan RAM dalam MB
+        let disk; // Akan menyimpan Disk dalam GB
+        let cpu; // Akan menyimpan CPU dalam persen
+        let cost = 0; // Inisialisasi biaya
+
+        // --- Logika untuk Opsi "unli" ---
+        if (sizeInput === 'unli') {
+            memo = 0; // Set RAM ke 0 (unlimited di Pterodactyl)
+            disk = 0; // Set Disk ke 0 (unlimited di Pterodactyl)
+            cpu = 0; // Set CPU ke 0 (unlimited di Pterodactyl)
+            cost = 180000; // Biaya untuk unlimited
+            // Pesan ini tidak ditampilkan di awal, tapi di akhir konfirmasi
+        } else {
+            // --- Parsing RAM, Disk, dan CPU (jika bukan "unli") ---
+            try {
+                const sizeMatch = sizeInput.match(/^(\d+)(gb|mb)$/);
+                if (!sizeMatch) {
+                    return m.reply("Format ukuran RAM/Disk salah. Contoh: 1GB, 512MB, atau 'unli'.");
+                }
+                let value = parseInt(sizeMatch[1]);
+                let unit = sizeMatch[2];
+
+                let baseGb; // Variabel untuk menyimpan ukuran dalam GB yang menjadi dasar perhitungan CPU
+
+                if (unit === 'gb') {
+                    memo = value * 1024; // Konversi GB ke MB untuk RAM
+                    disk = value; // Disk sudah dalam GB
+                    baseGb = value; // Dasar perhitungan CPU adalah nilai GB langsung
+                } else if (unit === 'mb') {
+                    memo = value; // RAM sudah dalam MB
+                    disk = Math.ceil(value / 1024); // Konversi MB ke GB untuk Disk (dibulatkan ke atas)
+                    if (disk === 0 && value > 0) {
+                        disk = 1; // Pastikan disk minimal 1GB jika RAM kurang dari 1GB tapi lebih dari 0MB
+                    }
+                    baseGb = disk; // Dasar perhitungan CPU adalah nilai disk dalam GB (setelah dibulatkan)
+                }
+
+                // Batasan
+                const MAX_RAM_GB = 16;
+                const MAX_DISK_GB = 16;
+                const MIN_RAM_MB = 512;
+                const MIN_DISK_GB = 1;
+
+                if (memo > (MAX_RAM_GB * 1024) || disk > MAX_DISK_GB) {
+                    return m.reply(`Ukuran RAM/Disk maksimal yang diizinkan adalah ${MAX_RAM_GB}GB.`);
+                }
+                if (memo < MIN_RAM_MB || disk < MIN_DISK_GB) {
+                    return m.reply(`Ukuran RAM minimal adalah ${MIN_RAM_MB}MB dan Disk minimal ${MIN_DISK_GB}GB.`);
+                }
+
+                // --- Logika Perhitungan CPU yang Disesuaikan (jika bukan "unli") ---
+                const BASE_CPU_FOR_1GB = 40;
+                const CPU_INCREMENT_PER_GB = 20;
+
+                if (baseGb <= 0) { // Seharusnya tidak terjadi karena ada MIN_DISK_GB = 1
+                    cpu = MIN_ALLOWED_CPU; // Default jika baseGb tidak valid
+                } else {
+                    cpu = BASE_CPU_FOR_1GB + ((baseGb - 1) * CPU_INCREMENT_PER_GB);
+                }
+
+                const MAX_ALLOWED_CPU = 200;
+                const MIN_ALLOWED_CPU = 40;
+
+                if (cpu > MAX_ALLOWED_CPU) {
+                    cpu = MAX_ALLOWED_CPU;
+                } else if (cpu < MIN_ALLOWED_CPU) {
+                    cpu = MIN_ALLOWED_CPU;
+                }
+                cpu = Math.round(cpu);
+
+                // --- Perhitungan Biaya Berdasarkan GB/MB ---
+                // Base cost for 1GB is 20,000
+                // Add 10,000 for each additional GB
+                cost = 20000 + (Math.max(0, baseGb - 1) * 10000);
+
+            } catch (e) {
+                console.error(e);
+                return m.reply("Terjadi kesalahan saat memparsing ukuran RAM/Disk atau menghitung CPU. Pastikan formatnya benar atau gunakan 'unli'.");
+            }
+        }
+        // --- Akhir Parsing RAM, Disk, dan CPU ---
+
+        // Validasi nomor target
+        if (!u) {
+            return m.reply(
+                "Nomor target tidak ditemukan. Harap sebutkan nomor, atau reply pesan."
+            );
+        }
+
+        // --- Bypass Pemotongan Saldo untuk Owner ---
+        // Asumsi global.owner adalah array atau set yang berisi JID owner
+        if (isCreator && global.owner.includes(m.sender)) {
+            cost = 0; // Set biaya menjadi 0 jika pengirim adalah owner
+            m.reply("Anda adalah owner, biaya pembuatan panel tidak akan dipotong.");
+        } else {
+            // --- Pengecekan Saldo Uang untuk Non-Owner ---
+            // Asumsi 'm.sender' adalah ID pengirim pesan dan 'db.users[m.sender].money' adalah saldo uangnya.
+            // Pastikan 'db.users[m.sender].money' sudah terinisialisasi (misal: 0 jika user baru).
+            if (!db.users[m.sender] || typeof db.users[m.sender].money === 'undefined') {
+                db.users[m.sender] = { money: 0, limit: 0 }; // Inisialisasi jika belum ada
+            }
+
+            if (db.users[m.sender].money < cost) {
+                return m.reply(`Saldo Anda tidak cukup untuk membuat panel ini. Saldo Anda: Rp${db.users[m.sender].money.toLocaleString('id-ID')}, Biaya: Rp${cost.toLocaleString('id-ID')}.`);
+            }
+        }
+
+
+        // Variabel lain dan proses pembuatan akun/server
+        let name = username + " dev";
+        let egg = global.eggsnya; 
+        let loc = global.location; 
+        let email = username + "@gmail.com";
+
+        let randomSuffix = generateRandomString(6); // Pastikan generateRandomString() tersedia
+        let password = username + randomSuffix;
+
+        // Membuat Pengguna (User) di Panel
+        let f = await fetch(global.domain + "/api/application/users", { // Menggunakan global.domain
+            method: "POST",
+            headers: {
+                Accept: "application/json",
+                "Content-Type": "application/json",
+                Authorization: "Bearer " + global.apikey, // Menggunakan global.apikey
+            },
+            body: JSON.stringify({
+                email: email,
+                username: username,
+                first_name: username,
+                last_name: username,
+                language: "en",
+                password: password,
+            }),
+        });
+        let data = await f.json();
+        if (data.errors) {
+            return m.reply(`Gagal membuat akun panel: ${JSON.stringify(data.errors[0], null, 2)}`);
+        }
+        let user = data.attributes;
+
+        m.reply(`BERHASIL CREATE AKUN PANEL\nUSER ID: *${user.id}`);
+
+        // Mendapatkan Startup Command
+        let f2 = await fetch(global.domain + "/api/application/nests/5/eggs/" + egg, { // Menggunakan global.domain
+            method: "GET",
+            headers: {
+                Accept: "application/json",
+                "Content-Type": "application/json",
+                Authorization: "Bearer " + global.apikey, // Menggunakan global.apikey
+            },
+        });
+        let data2 = await f2.json();
+        let startup_cmd = data2.attributes.startup;
+
+        // Menyusun pesan informasi untuk pengguna (dengan penyesuaian jika 'unli')
+        let displayRam = memo === 0 ? "Unlimited" : `${memo}MB`;
+        let displayDisk = disk === 0 ? "Unlimited" : `${disk}GB`;
+        let displayCpu = cpu === 0 ? "Unlimited" : `${cpu}%`;
+
+        let ctf = `*『 DATA AKUN PANEL ANDA 』*\n` +
+            `\n` +
+            `⎙─➤ *👤USERNAME* : ${user.username}\n` +
+            `⎙─➤ *🔐PASSWORD* : ${password}\n` +
+            `⎙─➤ *🌐LOGIN* : ${global.domain}\n` +
+            `⎙─➤ *📈RAM* : ${displayRam}\n` +
+            `⎙─➤ *🖥️CPU* : ${displayCpu}\n` +
+            `⎙─➤ *💾DISK* : ${displayDisk}\n` +
+            `⎙─➤ *💰BIAYA* : Rp${cost.toLocaleString('id-ID')}\n` +
+            `\n\n` +
+            `*NOTE:*\n` +
+            `[𝟭] 𝗢𝗪𝗡𝗘𝗥 𝗛𝗔𝗡𝗬𝗔 𝗠𝗘𝗡𝗴𝗜𝗥�𝗠 𝗗𝗔𝗧𝗔 𝗔𝗞𝗨𝗡 𝟭𝗫\n` +
+            `[𝟮] 𝗝𝗔𝗡𝗴𝗔𝗡 𝗦𝗛𝗔𝗥𝗘 𝗔𝗞𝗨𝗡 𝗣𝗔𝗡𝗘𝗟 𝗔𝗡𝗗𝗔\n` +
+            `[𝟯] 𝗝𝗔𝗡𝗴𝗔𝗡 𝗦𝗛𝗔𝗥𝗘 𝗪𝗘𝗕𝗦𝗜𝗧𝗘 𝗣𝗔𝗡𝗘𝗟\n` +
+            `\n` +
+            `> BY IzharDevelop\n` +
+            `> FROM INV_MultiMedia\n` +
+            `TERIMA KASIH TELAH MENGGUNAKAN BOT ${botname}` +
+            `===============================`;
+
+        const githubImageUrl = global.thumb; // Menggunakan global.thumb
+
+        // --- Coba kirim pesan ke user target, jika gagal, saldo tidak terpotong ---
+        try {
+            await naze.sendMessage(u, {
+                image: {
+                    url: githubImageUrl
+                },
+                caption: ctf,
+            });
+
+            // --- Pemotongan Saldo (Hanya jika pesan berhasil terkirim dan bukan owner) ---
+            if (cost > 0) { // Hanya potong jika ada biaya (bukan owner)
+                db.users[m.sender].money -= cost;
+                console.log(`Saldo ${m.sender} terpotong Rp${cost.toLocaleString('id-ID')}. Sisa saldo: Rp${db.users[m.sender].money.toLocaleString('id-ID')}`);
+                m.reply(`Saldo Anda telah terpotong sebesar Rp${cost.toLocaleString('id-ID')}. Sisa saldo: Rp${db.users[m.sender].money.toLocaleString('id-ID')}.`);
+            }
+
+        } catch (sendError) {
+            console.error("Gagal mengirim info panel ke target:", sendError);
+            return m.reply("Gagal mengirim info panel ke nomor target. Saldo tidak dipotong. Silakan coba lagi.");
+        }
+
+        // Membuat Server di Panel (dengan nilai 0 untuk unlimited)
+        let f3 = await fetch(global.domain + "/api/application/servers", { // Menggunakan global.domain
+            method: "POST",
+            headers: {
+                Accept: "application/json",
+                "Content-Type": "application/json",
+                Authorization: "Bearer " + global.apikey, // Menggunakan global.apikey
+            },
+            body: JSON.stringify({
+                name: name,
+                description: "by ZORO BOT Vana dan izhar jodohku",
+                user: user.id,
+                egg: parseInt(egg),
+                docker_image: global.nodejs, // Menggunakan global.nodejs
+                startup: startup_cmd,
+                environment: {
+                    INST: "npm",
+                    USER_UPLOAD: "0",
+                    AUTO_UPDATE: "0",
+                    CMD_RUN: "npm start",
+                },
+                limits: {
+                    memory: memo,
+                    swap: 0,
+                    disk: disk,
+                    io: 500,
+                    cpu: cpu,
+                },
+                feature_limits: {
+                    databases: 5,
+                    backups: 5,
+                    allocations: 1,
+                },
+                deploy: {
+                    locations: [parseInt(loc)],
+                    dedicated_ip: false,
+                    port_range: [],
+                },
+            }),
+        });
+        let res = await f3.json();
+        if (res.errors) {
+            // Jika terjadi error saat membuat server, kembalikan saldo jika sudah terpotong
+            if (cost > 0 && !global.owner.includes(m.sender)) { // Hanya kembalikan jika ada biaya dan bukan owner
+                db.users[m.sender].money += cost;
+                // PENTING: Panggil fungsi untuk menyimpan database setelah mengembalikan saldo
+                // saveDatabase(db); atau db.save();
+                console.error(`Error membuat server panel, saldo ${m.sender} dikembalikan.`, res.errors[0]);
+            }
+            return m.reply(`Gagal membuat server panel: ${JSON.stringify(res.errors[0], null, 2)}\n${cost > 0 && !global.owner.includes(m.sender) ? 'Saldo Anda telah dikembalikan.' : ''}`);
+        }
+        let server = res.attributes;
+
+        // Pesan konfirmasi akhir ke grup
+        let finalConfirmationMessage = `*INFOMASI PANEL*\n\n* STATUS: DONE\n* USER ID: *${user.id}\n* USERNAME: ${user.username}\n* RAM: ${displayRam}\n* CPU:${displayCpu}\n* DISK: ${displayDisk}\n* BIAYA: Rp${cost.toLocaleString('id-ID')}\n* TERKIRIM KE:@${u.split("@")[0]}\n\n`;
+
+        // Tambahkan catatan untuk alokasi unlimited jika dipilih
+        if (sizeInput === 'unli') {
+            finalConfirmationMessage += `*CATATAN: Server ini memiliki alokasi RAM, Disk, dan CPU tak terbatas (0).*\n\n`;
+        }
+
+        finalConfirmationMessage += `*JANGAN LUPA JEDA 10MENIT YA!!!!*`;
+
+        await m.reply(finalConfirmationMessage);
+    }
+    break
+			
+
+            case 'getprofile': {
+                let userJid = m.sender; // Default ke pengirim pesan
+                let targetName = m.pushName; // Default ke nama pengirim
+
+                // Cek jika ada yang ditandai (mentioned)
+                if (m.mentionedJid && m.mentionedJid[0]) {
+                    userJid = m.mentionedJid[0];
+                }
+                // Cek jika ada pesan yang dikutip
+                else if (m.quoted && m.quoted.sender) {
+                    userJid = m.quoted.sender;
+                }
+
+                try {
+                    // Dapatkan nama pengguna (dari cache kontak atau langsung dari WhatsApp)
+                    targetName = (naze.contacts[userJid]?.name || naze.contacts[userJid]?.verifiedName || (await naze.getName(userJid)) || '').trim();
+
+                    let ppUrl;
+                    try {
+                        // Dapatkan URL foto profil
+                        ppUrl = await naze.profilePictureUrl(userJid, 'image');
+                    } catch (e) {
+                        // Jika tidak ada foto profil atau gagal, gunakan default
+                        ppUrl = 'https://i.ibb.co/3xQy2Cg/avatar-contact.png';
+                    }
+
+                    let statusInfo;
+                    try {
+                        // Dapatkan status (bio) pengguna
+                        statusInfo = await naze.fetchStatus(userJid);
+                    } catch (e) {
+                        statusInfo = { status: 'Tidak ada status atau tidak dapat diakses.' };
+                    }
+
+                    let profileText = `*─「 PROFIL PENGGUNA 」─*\n\n`;
+                    profileText += `*Nama:* ${targetName || 'Tidak Diketahui'}\n`;
+                    profileText += `*Nomor:* ${userJid.split('@')[0]}\n`;
+                    profileText += `*Status:* ${statusInfo.status || 'Tidak ada status'}\n`;
+                    profileText += `*Bio Waktu:* ${statusInfo.setAt ? new Date(statusInfo.setAt * 1000).toLocaleString() : 'Tidak diketahui'}\n`;
+
+
+                    // Kirim foto profil beserta teks informasi
+                    if (ppUrl) {
+                        await naze.sendMedia(m.chat, ppUrl, '', profileText, m, { caption: profileText });
+                    } else {
+                        await m.reply(profileText);
+                    }
+
+                } catch (e) {
+                    console.error("Error getting profile:", e);
+                    await m.reply("Terjadi kesalahan saat mengambil profil.");
+                }
+            }
+            break
+
 			// Owner Menu
 			case 'shutdown': case 'off': {
 				if (!isCreator) return m.reply(mess.owner)
@@ -1051,26 +2665,6 @@ module.exports = naze = async (naze, m, msg, store, groupCache) => {
 				}
 			}
 			break
-			case 'addcase': {
-				if (!isCreator) return m.reply(mess.owner)
-				if (!text && !text.startsWith('case')) return m.reply('Masukkan Casenya!')
-				fs.readFile('naze.js', 'utf8', (err, data) => {
-					if (err) {
-						console.error('Terjadi kesalahan saat membaca file:', err);
-						return;
-					}
-					const posisi = data.indexOf("case '19rujxl1e':");
-					if (posisi !== -1) {
-						const codeBaru = data.slice(0, posisi) + '\n' + `${text}` + '\n' + data.slice(posisi);
-						fs.writeFile('naze.js', codeBaru, 'utf8', (err) => {
-							if (err) {
-								m.reply('Terjadi kesalahan saat menulis file: ', err);
-							} else m.reply('Case berhasil ditambahkan');
-						});
-					} else m.reply('Gagal Menambahkan case!');
-				});
-			}
-			break
 			case 'getcase': {
 				if (!isCreator) return m.reply(mess.owner)
 				if (!text) return m.reply('Masukkan Nama Casenya!')
@@ -1102,6 +2696,25 @@ module.exports = naze = async (naze, m, msg, store, groupCache) => {
 				});
 			}
 			break
+                case 'tebak': {
+				let anu = ['Aku akan menikah dengan dia yang aku cintai','Aku akan menikah dengan mantan ku','Aku jomblo ada yang mau?','Alu sayang kamu','aku benci dia','Aku cantik sekali','Aku ganteng sekali','Aku kangen','Aku Sultan','Aku pengen cepet nikah','nikahi aku','lamar aku']
+				await naze.sendButtonMsg(m.chat, {
+					text: 'Semoga Hoki yah',
+					buttons: [{
+						buttonId: 'teshoki',
+						buttonText: { displayText: '\n' + pickRandom(anu)},
+						type: 1
+					},{
+						buttonId: 'cobacoba',
+						buttonText: { displayText: '\n' + pickRandom(anu)},
+						type: 1
+					}]
+				})
+			}
+			break
+        case 'istri':{
+            if (!isCreator) return m.reply('kau siapa tanya tanya istri ke aku?')
+m.reply('istri? kapan kamu nikah? samperin aja ga bisa, kesenjangan jarak pula. DASAR HALU');}break
 			case 'backup': {
 				if (!isCreator) return m.reply(mess.owner)
 				switch (args[0]) {
@@ -1491,11 +3104,25 @@ module.exports = naze = async (naze, m, msg, store, groupCache) => {
 			}
 			break
 			case 'profile': case 'cek': {
-				const user = Object.keys(db.users)
-				const infoUser = db.users[m.sender]
-				await m.reply(`*👤Profile @${m.sender.split('@')[0]}* :\n🐋User Bot : ${user.includes(m.sender) ? 'True' : 'False'}\n🔥User : ${isVip ? 'VIP' : isPremium ? 'PREMIUM' : 'FREE'}${isPremium ? `\n⏳Expired : ${checkStatus(m.sender, premium) ? formatDate(getExpired(m.sender, db.premium)) : '-'}` : ''}\n🎫Limit : ${infoUser.limit}\n💰Uang : ${infoUser ? infoUser.money.toLocaleString('id-ID') : '0'}`)
-			}
-			break
+                const user = db.users[m.sender]; // Ambil data pengguna
+                const userName = user.name || (m.pushName || m.sender.split('@')[0]); // Gunakan nama terdaftar atau nama WhatsApp
+                const userAge = user.age || 'Tidak diketahui';
+                const userOrigin = user.origin || 'Tidak diketahui';
+                const userLevel = user.level || 0;
+                const userExp = user.exp || 0;
+
+                await m.reply(`*👤Profile @${m.sender.split('@')[0]}* :\n` +
+                              `*Nama:* ${userName}\n` +
+                              `*Umur:* ${userAge}\n` +
+                              `*Asal:* ${userOrigin}\n` +
+                              `*Status Daftar:* ${user.register ? 'Terdaftar ✅' : 'Belum Terdaftar ❌'}\n` +
+                              `*Level:* ${userLevel} (EXP: ${userExp})\n` +
+                              `*User Bot:* ${user ? 'True' : 'False'}\n` +
+                              `*User:* ${isVip ? 'VIP' : isPremium ? 'PREMIUM' : 'FREE'}${isPremium ? `\n*Expired:* ${checkStatus(m.sender, premium) ? formatDate(getExpired(m.sender, db.premium)) : '-'}` : ''}\n` +
+                              `*Limit:* ${isVip ? 'VIP' : user.limit}\n` +
+                              `*Uang:* ${user ? user.money.toLocaleString('id-ID') : '0'}`);
+            }
+            break
 			case 'leaderboard': {
 				const entries = Object.entries(db.users).sort((a, b) => b[1].money - a[1].money).slice(0, 10).map(entry => entry[0]);
 				let teksnya = '╭──❍「 *LEADERBOARD* 」❍\n'
@@ -3128,36 +4755,9 @@ module.exports = naze = async (naze, m, msg, store, groupCache) => {
 				naze.sendMessage(m.chat, { text: teks2 }, { quoted: ftelo });
 			}
 			break
-			case 'coba': {
-				let anu = ['Aku Monyet','Aku Kera','Aku Tolol','Aku Kaya','Aku Dewa','Aku Anjing','Aku Dongo','Aku Raja','Aku Sultan','Aku Baik','Aku Hitam','Aku Suki']
-				await naze.sendButtonMsg(m.chat, {
-					text: 'Semoga Hoki😹',
-					buttons: [{
-						buttonId: 'teshoki',
-						buttonText: { displayText: '\n' + pickRandom(anu)},
-						type: 1
-					},{
-						buttonId: 'cobacoba',
-						buttonText: { displayText: '\n' + pickRandom(anu)},
-						type: 1
-					}]
-				})
-			}
-			break
 			
 			// Game Menu
-			case 'slot': {
-				await gameSlot(naze, m, db)
-			}
-			break
-			case 'casino': {
-				await gameCasinoSolo(naze, m, prefix, db)
-			}
-			break
-			case 'samgong': case 'kartu': {
-				await gameSamgongSolo(naze, m, db)
-			}
-			break
+			
 			case 'rampok': case 'merampok': {
 				await gameMerampok(m, db)
 			}
@@ -3529,7 +5129,7 @@ module.exports = naze = async (naze, m, msg, store, groupCache) => {
 					if (ulartangga[m.chat].players.length < 1 || ulartangga[m.chat].host === m.sender) {
 						m.reply(ulartangga[m.chat].host === m.sender ? 'Host Meninggalkan Permainan\nPermainan dihentikan!' : 'Pemain Kurang Dari 1, Permainan dihentikan!');
 						delete ulartangga[m.chat];
-						break;
+						break
 					}
 					ulartangga[m.chat].players.splice(player, 1);
 					m.reply('Sukses Meninggalkan Permainan');
@@ -3583,7 +5183,7 @@ module.exports = naze = async (naze, m, msg, store, groupCache) => {
 								const { data } = await axios.get(url, { responseType: 'arraybuffer' });
 								let { key } = await m.reply({ image: data, caption: `♟️CHESS GAME\n\nGiliran: @${chess[m.chat].turn.split('@')[0]}\n\nReply Pesan Ini untuk lanjut bermain!\nExample: from to -> b1 c3`, mentions: [chess[m.chat].turn] });
 								chess[m.chat].id = key.id;
-								break;
+								break
 							} catch (e) {}
 						}
 					}
@@ -3623,7 +5223,7 @@ module.exports = naze = async (naze, m, msg, store, groupCache) => {
 								const { data } = await axios.get(url, { responseType: 'arraybuffer' });
 								let { key } = await m.reply({ image: data, caption: `♟️CHESS GAME\n\nGiliran: @${chess[m.sender].turn.split('@')[0]}\n\nReply Pesan Ini untuk lanjut bermain!\nExample: from to -> b1 c3`, mentions: [chess[m.sender].turn] });
 								chess[m.sender].id = key.id;
-								break;
+								break
 							} catch (e) {}
 						}
 					}
@@ -3652,7 +5252,7 @@ module.exports = naze = async (naze, m, msg, store, groupCache) => {
 				for (let id in blackjack) {
 					if (blackjack[id].players.find(p => p.id === m.sender)) {
 						session = blackjack[id];
-						break;
+						break
 					}
 				}
 				if (session && !(session instanceof Blackjack)) {
@@ -3915,6 +5515,13 @@ module.exports = naze = async (naze, m, msg, store, groupCache) => {
 │${setv} ${prefix}setppgc (reply imgnya)
 │${setv} ${prefix}delete (reply pesan)
 │${setv} ${prefix}linkgrup
+│${setv} ${prefix}addlist
+│${setv} ${prefix}getslit
+│${setv} ${prefix}dellist
+│${setv} ${prefix}addbadword
+│${setv} ${prefix}delbadword
+│${setv} ${prefix}listbadword
+│${setv} ${prefix}antibadword on/off
 │${setv} ${prefix}revoke
 │${setv} ${prefix}tagall
 │${setv} ${prefix}pin
@@ -4008,22 +5615,15 @@ module.exports = naze = async (naze, m, msg, store, groupCache) => {
 │${setv} ${prefix}gemini (query)
 │${setv} ${prefix}txt2img (query)
 ╰─┬────❍
-╭─┴❍「 *ANIME* 」❍
-│${setv} ${prefix}waifu
-│${setv} ${prefix}neko
-╰─┬────❍
 ╭─┴❍「 *GAME* 」❍
 │${setv} ${prefix}tictactoe
 │${setv} ${prefix}akinator
 │${setv} ${prefix}suit
-│${setv} ${prefix}slot
 │${setv} ${prefix}math (level)
 │${setv} ${prefix}begal
 │${setv} ${prefix}ulartangga
 │${setv} ${prefix}blackjack
 │${setv} ${prefix}catur
-│${setv} ${prefix}casino (nominal)
-│${setv} ${prefix}samgong (nominal)
 │${setv} ${prefix}rampok (@tag)
 │${setv} ${prefix}tekateki
 │${setv} ${prefix}tebaklirik
@@ -4073,6 +5673,8 @@ module.exports = naze = async (naze, m, msg, store, groupCache) => {
 ╭─┴❍「 *OWNER* 」❍
 │${setv} ${prefix}bot [set]
 │${setv} ${prefix}setbio
+│${setv} ${prefix}addowner
+│${setv} ${prefix}delowner
 │${setv} ${prefix}setppbot
 │${setv} ${prefix}join
 │${setv} ${prefix}leave
@@ -4185,6 +5787,13 @@ module.exports = naze = async (naze, m, msg, store, groupCache) => {
 │${setv} ${prefix}setppgc (reply imgnya)
 │${setv} ${prefix}delete (reply pesan)
 │${setv} ${prefix}linkgrup
+│${setv} ${prefix}addlist
+│${setv} ${prefix}getslit
+│${setv} ${prefix}dellist
+│${setv} ${prefix}addbadword
+│${setv} ${prefix}delbadword
+│${setv} ${prefix}listbadword
+│${setv} ${prefix}antibadword on/off
 │${setv} ${prefix}revoke
 │${setv} ${prefix}tagall
 │${setv} ${prefix}pin
@@ -4200,6 +5809,7 @@ module.exports = naze = async (naze, m, msg, store, groupCache) => {
 			case 'searchmenu': {
 				m.reply(`
 ╭──❍「 *SEARCH* 」❍
+│${setv} ${prefix}jadwalsholat
 │${setv} ${prefix}ytsearch (query)
 │${setv} ${prefix}spotify (query)
 │${setv} ${prefix}pixiv (query)
@@ -4313,17 +5923,10 @@ module.exports = naze = async (naze, m, msg, store, groupCache) => {
 │${setv} ${prefix}wastalk
 │${setv} ${prefix}telestalk
 │${setv} ${prefix}igstalk
+│${setv} ${prefix}ffstalk
 │${setv} ${prefix}tiktokstalk
 │${setv} ${prefix}githubstalk
 │${setv} ${prefix}genshinstalk
-╰──────❍`)
-			}
-			break
-			case 'animemenu': {
-				m.reply(`
-╭──❍「 *ANIME* 」❍
-│${setv} ${prefix}waifu
-│${setv} ${prefix}neko
 ╰──────❍`)
 			}
 			break
@@ -4333,14 +5936,11 @@ module.exports = naze = async (naze, m, msg, store, groupCache) => {
 │${setv} ${prefix}tictactoe
 │${setv} ${prefix}akinator
 │${setv} ${prefix}suit
-│${setv} ${prefix}slot
 │${setv} ${prefix}math (level)
 │${setv} ${prefix}begal
 │${setv} ${prefix}ulartangga
 │${setv} ${prefix}blackjack
 │${setv} ${prefix}catur
-│${setv} ${prefix}casino (nominal)
-│${setv} ${prefix}samgong (nominal)
 │${setv} ${prefix}rampok (@tag)
 │${setv} ${prefix}tekateki
 │${setv} ${prefix}tebaklirik
@@ -4387,6 +5987,8 @@ module.exports = naze = async (naze, m, msg, store, groupCache) => {
 ╭──❍「 *OWNER* 」❍
 │${setv} ${prefix}bot [set]
 │${setv} ${prefix}setbio
+│${setv} ${prefix}addowner
+│${setv} ${prefix}delowner
 │${setv} ${prefix}setppbot
 │${setv} ${prefix}join
 │${setv} ${prefix}leave
@@ -4480,7 +6082,7 @@ module.exports = naze = async (naze, m, msg, store, groupCache) => {
 		if (msg) {
 			m.reply(msg + '\n\nError: ' + (e?.name || e?.code || e?.output?.statusCode || e?.status || 'Tidak diketahui') + '\nLog Error Telah dikirim ke Owner\n\n')
 		}
-		return naze.sendFromOwner(owner, `Halo sayang, sepertinya ada yang error nih, jangan lupa diperbaiki ya\n\nVersion : *${require('./package.json').version}*\n\n*Log error:*\n\n` + util.format(e), m, { contextInfo: { isForwarded: true }})
+		return naze.sendFromOwner(global.dev, `Halo sayang, sepertinya ada yang error nih, jangan lupa diperbaiki ya\n\nVersion : *${require('./package.json').version}*\n\n*Log error:*\n\n` + util.format(e), m, { contextInfo: { isForwarded: true }})
 	}
 }
 

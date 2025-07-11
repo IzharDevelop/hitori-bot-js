@@ -1,3 +1,4 @@
+// src/database.js
 require('../settings');
 const fs = require('fs');
 const toMs = require('ms');
@@ -200,6 +201,64 @@ const checkExpired = (_dir, conn) => {
 	}, 5 * 60 * 1000);
 };
 
+// Fungsi untuk menambahkan EXP dan menghitung level
+const addLevelExp = (senderId, amount) => {
+    if (!global.db.users[senderId]) {
+        // Inisialisasi pengguna jika belum ada (ini juga akan ditangani di naze.js)
+        global.db.users[senderId] = {
+            vip: false,
+            ban: false,
+            afkTime: -1,
+            afkReason: "",
+            register: false, // Default: belum terdaftar
+            limit: global.limit.free, // Pastikan global.limit didefinisikan di settings.js
+            money: global.money.free, // Pastikan global.money didefinisikan di settings.js
+            lastclaim: 0,
+            lastbegal: 0,
+            lastrampok: 0,
+            name: "",     // Nama pengguna
+            age: 0,       // Umur pengguna
+            origin: "",   // Asal daerah pengguna
+            level: 0,     // Level pengguna
+            exp: 0        // Experience Points pengguna
+        };
+    }
+
+    const user = global.db.users[senderId];
+    user.exp += amount;
+
+    // Definisikan ambang batas EXP untuk setiap level (Anda bisa menyesuaikannya)
+    const levelThresholds = [
+        0,    // Level 0 (untuk 0 exp)
+        100,  // Level 1 membutuhkan 100 exp
+        300,  // Level 2 membutuhkan 300 exp
+        600,  // Level 3 membutuhkan 600 exp
+        1000, // Level 4 membutuhkan 1000 exp
+        1500, // Level 5 membutuhkan 1500 exp
+        2500, // Level 6 membutuhkan 2500 exp
+        4000, // Level 7 membutuhkan 4000 exp
+        6000, // Level 8 membutuhkan 6000 exp
+        8500, // Level 9 membutuhkan 8500 exp
+        12000 // Level 10 membutuhkan 12000 exp
+        // Tambahkan lebih banyak level dan ambang batas sesuai keinginan
+    ];
+
+    let newLevel = user.level;
+    for (let i = user.level + 1; i < levelThresholds.length; i++) {
+        if (user.exp >= levelThresholds[i]) {
+            newLevel = i;
+        } else {
+            break // Berhenti jika EXP tidak cukup untuk level berikutnya
+        }
+    }
+
+    if (newLevel > user.level) {
+        console.log(chalk.green(`🎉 Pengguna ${senderId.split('@')[0]} naik level dari ${user.level} ke ${newLevel}!`));
+        user.level = newLevel;
+        // Notifikasi naik level akan ditangani di naze.js karena memerlukan objek 'm'
+    }
+};
+
 module.exports = {
 	dataBase,
 	cmdAdd,
@@ -211,7 +270,8 @@ module.exports = {
 	getExpired,
 	checkStatus,
 	getAllExpired,
-	checkExpired
+	checkExpired,
+    addLevelExp // Export fungsi baru ini
 }
 
 
