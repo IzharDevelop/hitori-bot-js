@@ -13,6 +13,11 @@ const { imageToWebp, videoToWebp, writeExif, gifToWebp } = require('../lib/exif'
 const { isUrl, getGroupAdmins, generateMessageTag, getBuffer, getSizeMedia, fetchJson, sleep, getTypeUrlMedia } = require('../lib/function');
 const { jidNormalizedUser, proto, getBinaryNodeChildren, getBinaryNodeChild, generateMessageIDV2, jidEncode, encodeSignedDeviceIdentity, generateWAMessageContent, generateForwardMessageContent, prepareWAMessageMedia, delay, areJidsSameUser, extractMessageContent, generateMessageID, downloadContentFromMessage, generateWAMessageFromContent, jidDecode, generateWAMessage, toBuffer, getContentType, WAMessageStubType, getDevice } = require('baileys');
 
+/*
+	* Create By Naze
+	* Follow https://github.com/nazedev
+	* Whatsapp : https://whatsapp.com/channel/0029VaWOkNm7DAWtkvkJBK43
+*/
 
 async function GroupUpdate(naze, m, store) {
 	if (!m.messageStubType || !m.isGroup) return
@@ -64,11 +69,12 @@ async function GroupParticipantsUpdate(naze, { id, participants, author, action 
 					profile = 'https://telegra.ph/file/95670d63378f7f4210f03.png';
 				}
 				let messageText;
+               
 				if (action === 'add') {
-					if (db.groups[id].welcome) messageText = db.groups[id]?.text?.setwelcome || `Welcome to ${metadata.subject}\n@`;
+					if (db.groups[id].welcome) messageText = db.groups[id]?.text?.setwelcome || `WELKAM TU GRUP  ${metadata.subject}\n@\n> JANGAN LUPA INTRO YAH\nLIST INTRO WAJIB ISI\n1. Nama lengkap: \n2. Nama panggilan: \n3. Tanggal lahir: \n4. Tempat lahir: \n5. Jenis kelamin: \n6. Alamat rumah: \n7. No. HP: \n8. Email: \n9. Status pernikahan: \n10. Agama: \n\nKeluarga\n11. Nama ayah: \n12. Nama ibu: \n13. Jumlah saudara kandung: \n14. Nama saudara kandung: \n15. Status keluarga (sederhana, menengah, atas): \n\nPendidikan\n16. Pendidikan terakhir: \n17. Jurusan: \n18. Nama sekolah/universitas: \n19. Tahun lulus: \n20. Prestasi akademik: \n\nKarir\n21. Pekerjaan saat ini: \n22. Jabatan: \n23. Perusahaan: \n24. Pengalaman kerja: \n25. Gaji: \n\nHobi dan Minat\n26. Hobi: \n27. Minat: \n28. Aktivitas yang disukai: \n29. Buku favorit: \n30. Film favorit: \n\nKepribadian\n31. Sifat baik: \n32. Sifat buruk: \n33. Motto hidup: \n34. Tujuan hidup: \n35. Nilai-nilai yang dianut: \n\nKesehatan\n36. Riwayat penyakit: \n37. Alergi: \n38. Kondisi kesehatan saat ini: \n39. Olahraga yang disukai: \n40. Pola makan: \n\nKeuangan\n41. Sumber pendapatan: \n42. Pengeluaran bulanan: \n43. Tabungan: \n44. Investasi: \n45. Tujuan keuangan: \n\nHubungan Sosial\n46. Jumlah teman dekat: \n47. Nama teman dekat: \n48. Aktivitas sosial: \n49. Komunitas yang diikuti: \n50. Kegiatan sukarela: \n\nTeknologi\n51. Perangkat yang digunakan (HP, laptop, dll.): \n52. Sistem operasi yang digunakan: \n53. Aplikasi favorit: \n54. Media sosial yang digunakan: \n55. Keahlian teknologi: \n\nPerjalanan\n56. Tempat yang pernah dikunjungi: \n57. Negara yang pernah dikunjungi: \n58. Pengalaman perjalanan: \n59. Tujuan perjalanan selanjutnya: \n60. Cara bepergian favorit: \n\nMakanan dan Minuman\n61. Makanan favorit: \n62. Minuman favorit: \n63. Restoran favorit: \n64. Jenis makanan yang disukai: \n65. Pola makan: \n\nMusik dan Seni\n66. Genre musik favorit: \n67. Artis favorit: \n68. Alat musik yang dimainkan: \n69. Kegiatan seni yang disukai: \n70. Karya seni favorit: \n\nTujuan dan Impian\n71. Tujuan jangka pendek: \n72. Tujuan jangka panjang: \n73. Impian: \n74. Langkah-langkah untuk mencapai tujuan: \n75. Motivasi: \n\nRefleksi Diri\n76. Hal yang disukai dari diri sendiri: \n77. Hal yang tidak disukai dari diri sendiri: \n78. Kekuatan: \n79. Kelemahan: \n80. Pelajaran hidup: \n\nLain-lain\n81. Nama hewan peliharaan: \n82. Jenis hewan peliharaan: \n83. Aktivitas yang dilakukan saat liburan: \n84. Tempat favorit: \n85. Kegiatan yang disukai saat sendirian: \n\nPengembangan Diri\n86. Kursus yang pernah diikuti: \n87. Pelatihan yang pernah diikuti: \n88. Buku pengembangan diri yang dibaca: \n89. Kegiatan pengembangan diri yang disukai: \n90. Tujuan pengembangan diri: \n\nKreativitas\n91. Kegiatan kreatif yang disukai: \n92. Karya kreatif yang pernah dibuat: \n93. Sumber inspirasi: \n94. Cara mengekspresikan kreativitas: \n95. Kegiatan seni yang disukai: \n\nAkhir\n96. Pesan untuk diri sendiri: \n97. Harapan untuk masa depan: \n98. Hal yang ingin dibanggakan: \n99. Kegiatan yang ingin dilakukan sebelum meninggal: \n100. Motto hidup:`;
 					metadata.participants.push({ id: jidNormalizedUser(n), admin: null });
 				} else if (action === 'remove') {
-					if (db.groups[id].leave) messageText = db.groups[id]?.text?.setleave || `@\nLeaving From ${metadata.subject}`;
+					if (db.groups[id].leave) messageText = db.groups[id]?.text?.setleave || `@\nOke yang keluar dari ${metadata.subject}\n\n AKU NITIP GORENGAN YA`;
 					metadata.participants = metadata.participants.filter(p => !participants.includes(jidNormalizedUser(p.id)));
 				} else if (action === 'promote') {
 					if (db.groups[id].promote) messageText = db.groups[id]?.text?.setpromote || `@\nPromote From ${metadata.subject}\nBy @admin`;
@@ -119,19 +125,20 @@ async function LoadDataBase(naze, m) {
 			money: 0,
 			status: 0,
 			join: false,
-			public: false,
-			anticall: false,
+			public: true,
+			anticall: true,
 			original: true,
 			readsw: false,
 			autobio: false,
-			autoread: false,
+			autoread: true,
 			antispam: false,
 			autotyping: true,
 			grouponly: true,
-			multiprefix: true,
+			multiprefix: false,
 			privateonly: true,
 			autobackup: false,
 			template: 'documentMessage',
+			autoGeminiReply: true,
 		};
 		for (let key in defaultSetBot) {
 			if (!(key in setBot)) setBot[key] = defaultSetBot[key];
@@ -166,7 +173,7 @@ async function LoadDataBase(naze, m) {
 				warn: {},
 				tagsw: {},
 				nsfw: false,
-				mute: true,
+				mute: false,
 				leave: false,
 				setinfo: false,
 				antilink: false,

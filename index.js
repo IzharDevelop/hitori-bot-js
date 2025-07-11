@@ -40,7 +40,11 @@ server.listen(PORT, () => {
 const { GroupParticipantsUpdate, MessagesUpsert, Solving } = require('./src/message');
 const { isUrl, generateMessageTag, getBuffer, getSizeMedia, fetchJson, sleep } = require('./lib/function');
 
-
+/*
+	* Create By Naze
+	* Follow https://github.com/nazedev
+	* Whatsapp : https://whatsapp.com/channel/0029VaWOkNm7DAWtkvkJBK43
+*/
 
 async function startNazeBot() {
 	const { state, saveCreds } = await useMultiFileAuthState('nazedev');
@@ -165,7 +169,7 @@ async function startNazeBot() {
 			setTimeout(async () => {
 				pairingStarted = true;
 				console.log('Requesting Pairing Code...')
-				let code = await naze.requestPairingCode(phoneNumber, "ZHARVANA");
+				let code = await naze.requestPairingCode(phoneNumber, "AAAAAAAA");
 				console.log(`Your Pairing Code : ${code}`);
 			}, 3000)
 		}
@@ -205,8 +209,6 @@ async function startNazeBot() {
 			}
 		}
 		if (connection == 'open') {
-            console.log('WELKAM TU MY TEAM INV_MEDIA');
-            console.log('JANGAN LUPA FOLLOW IG ADMIN YAH')
 			console.log('Connected to : ' + JSON.stringify(naze.user, null, 2));
 			let botNumber = await naze.decodeJid(naze.user.id);
 			if (global.db?.set[botNumber] && !global.db?.set[botNumber]?.join) {
@@ -215,8 +217,6 @@ async function startNazeBot() {
 					db.set[botNumber].join = true
 				}
 			}
-			console.log('WELKAM TU MY TEAM INV_MEDIA');
-            console.log('JANGAN LUPA FOLLOW IG ADMIN YAH')
 		}
 		if (qr) {
 			if (!pairingCode) qrcode.generate(qr, { small: true })

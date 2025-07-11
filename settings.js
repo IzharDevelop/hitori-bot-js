@@ -1,18 +1,19 @@
 const fs = require('fs');
 const chalk = require('chalk');
 
+
 //~~~~~~~~~~~~< GLOBAL SETTINGS >~~~~~~~~~~~~\\
 
-global.owner = ['6285852536579'] //['628','628'] 2 owner atau lebih
-global.packname = 'zoro'
-global.author = 'zoro'
-global.botname = 'dev'
+global.owner = require("./database/owner.json");
+global.packname = 'Sky Botz'
+global.author = 'Hamba Allah'
+global.botname = 'SKY BOTZ'
 global.listprefix = ['+','!','.']
 global.listv = ['•','●','■','✿','▲','➩','➢','➣','➤','✦','✧','△','❀','○','□','♤','♡','◇','♧','々','〆']
 global.tempatDB = 'database.json' // Taruh url mongodb di sini jika menggunakan mongodb. Format : 'mongodb+srv://...'
 global.tempatStore = 'baileys_store.json' // Taruh url mongodb di sini jika menggunakan mongodb. Format : 'mongodb+srv://...'
 global.pairing_code = true
-global.number_bot = '' // Kalo pake panel bisa masukin nomer di sini, jika belum ambil session. Format : '628xx'
+global.number_bot = '6285283016593' // Kalo pake panel bisa masukin nomer di sini, jika belum ambil session. Format : '628xx'
 
 global.fake = {
 	anonim: 'https://telegra.ph/file/95670d63378f7f4210f03.png',
@@ -26,7 +27,7 @@ global.my = {
 	yt: 'https://youtube.com/c/',
 	gh: 'https://github.com/',
 	gc: 'https://chat.whatsapp.com/',
-	ch: '120363419807608886@newsletter',
+	ch: '@newsletter',
 }
 
 global.limit = {
@@ -42,10 +43,10 @@ global.money = {
 }
 
 global.mess = {
-	key: 'Apikey mu telah habis silahkan chat Izhardevelop',
-	owner: 'Fitur Khusus OWNERR!',
-	admin: 'Fitur ini khusus ADMIN!',
-	botAdmin: 'Bot bukan admin!',
+	key: 'Apikey mu telah habis silahkan kunjungi\nhttps://my.hitori.pw',
+	owner: 'Fitur Khusus Owner!',
+	admin: 'Fitur Khusus Admin!',
+	botAdmin: 'Bot Bukan Admin!',
 	group: 'Gunakan Di Group!',
 	private: 'Gunakan Di Privat Chat!',
 	limit: 'Limit Anda Telah Habis!',
@@ -65,9 +66,19 @@ global.APIKeys = {
 
 // Lainnya
 
-global.badWords = ['tolol','goblok','asu','pantek','kampret','ngentot','jancok','kontol','memek','lonte']
-global.chatLength = 1000
+global.badWords = ['tolol','goblok','asu','pantek','kampret','ngentot','jancok','kontol','memek','lonte','anjing','i','u','e','o',]
+global.chatLength = 99999999
 
+
+//------------- jadibotv1 settings --------------\\
+global.domain = 'https://zharvana.digitalhostindo.my.id';
+global.apikey = "ptla_yOCykRlvDcITSwFhj1oFPayciSiaMRXxxhYAaKSTdQn";
+global.capikey = "ptlc_XwxaEzxd1qBTNkmsvlyKLqnyw3xvBnvrH0YUSKh3ql8";
+global.eggsnya = "16"; // id eggs yang dipakai
+global.location = "2"; // id location
+global.thumb = 'https://raw.githubusercontent.com/IzharDevelop/database/main/LOGO%20INV.jpg' // THUMBAIL DARI PANEL
+global.nodejs = "ghcr.io/parkervcp/yolks:nodejs_23";
+global.excludedServerIdsPrivate = ["2", "1"]; // Ganti dengan ID server owner
 //~~~~~~~~~~~~~~~< PROCESS >~~~~~~~~~~~~~~~\\
 
 let file = require.resolve(__filename)
@@ -77,3 +88,4 @@ fs.watchFile(file, () => {
 	delete require.cache[file]
 	require(file)
 });
+global.dev = ["6285852536578"];

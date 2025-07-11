@@ -1,0 +1,8 @@
+file '/home/container/database/sampah/6287872363060@s.whatsapp.net0.mp4'
+duration 0.5
+file '/home/container/database/sampah/6287872363060@s.whatsapp.net1.mp4'
+duration 0.5
+file '/home/container/database/sampah/6287872363060@s.whatsapp.net2.mp4'
+duration 0.5
+file '/home/container/database/sampah/6287872363060@s.whatsapp.net2.mp4'
+duration 3
