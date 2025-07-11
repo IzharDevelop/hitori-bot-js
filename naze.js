@@ -43,7 +43,7 @@ const { toAudio, toPTT, toVideo } = require('./lib/converter');
 const { GroupUpdate, LoadDataBase } = require('./src/message');
 const { JadiBot, StopJadiBot, ListJadiBot } = require('./src/jadibot');
 const { imageToWebp, videoToWebp, gifToWebp, writeExif } = require('./lib/exif');
-const { cmdAdd, cmdDel, cmdAddHit, addExpired, getPosition, getExpired, getStatus, checkStatus, getAllExpired, checkExpired } = require('./src/database');
+const { cmdAdd, cmdDel, cmdAddHit, addExpired, getPosition, getExpired, getStatus, checkStatus, getAllExpired, checkExpired, addLevelExp } = require('./src/database');
 const { rdGame, iGame, tGame, gameSlot, gameCasinoSolo, gameSamgongSolo, gameMerampok, gameBegal, daily, buy, setLimit, addLimit, addMoney, setMoney, transfer, Blackjack, SnakeLadder } = require('./lib/game');
 const { pinterest, wallpaper, remini, wikimedia, hitamkan, yanzGpt, mediafireDl, ringtone, styletext, instagramDl, tiktokDl, facebookDl, instaStalk, telegramStalk, tiktokStalk, genshinStalk, instaStory, bk9Ai, spotifyDl, ytMp4, ytMp3, NvlGroup, quotedLyo, youSearch, gptLogic, savetube, simi, geminiAi } = require('./lib/screaper');
 const { unixTimestampSeconds, generateMessageTag, processTime, webApi, getRandom, getBuffer, fetchJson, runtime, clockString, sleep, isUrl, getTime, formatDate, formatp, jsonformat, reSize, toHD, logic, generateProfilePicture, bytesToSize, errorCache, normalize, getSizeMedia, parseMention, getGroupAdmins, readFileTxt, readFileJson, getHashedPassword, generateAuthToken, cekMenfes, generateToken, batasiTeks, randomText, isEmoji, getTypeUrlMedia, pickRandom, convertTimestampToDate, getAllHTML, tarBackup } = require('./lib/function');
@@ -179,6 +179,12 @@ module.exports = naze = async (naze, m, msg, store, groupCache) => {
 			timezone: 'Asia/Jakarta'
 		});
 		
+		//daftar
+		if (!isCreator && isCmd && command !== 'daftar' && !db.users[m.sender].register) {
+            return m.reply(`Kamu belum terdaftar! Silakan daftar terlebih dahulu dengan perintah:\n*${prefix}daftar nama umur asal_daerah*\n\nContoh: *${prefix}daftar Budi 20 Jakarta*`);
+        }
+		
+
 		// Auto Set Bio
 		if (set.autobio) {
 			if (new Date() * 1 - set.status > 60000) {
@@ -292,6 +298,15 @@ module.exports = naze = async (naze, m, msg, store, groupCache) => {
 			if (cases.includes(command)) {
 				cmdAdd(db.hit);
 				cmdAddHit(db.hit, command);
+                // Tambahkan EXP untuk pengguna yang terdaftar
+                if (db.users[m.sender].register) {
+                    const oldLevel = db.users[m.sender].level;
+                    addLevelExp(m.sender, 5); // Beri 5 EXP per penggunaan perintah (sesuaikan jumlahnya)
+                    const newLevel = db.users[m.sender].level;
+                    if (newLevel > oldLevel) {
+                        m.reply(`🎉 Selamat @${m.sender.split('@')[0]}, kamu naik level menjadi Level ${newLevel}!`);
+                    }
+                }
 			}
 			if (set.antispam && antiSpam.isFiltered(m.sender)) {
 				console.log(chalk.bgRed('[ SPAM ] : '), chalk.black(chalk.bgHex('#1CFFF7')(`From -> ${m.sender}`), chalk.bgHex('#E015FF')(` In ${m.isGroup ? m.chat : 'Private Chat'}`)))
@@ -980,6 +995,35 @@ const setupPrayerTimeChecks = async () => {
 				await naze.sendMessage(m.chat, { document: { url: url }, mimetype: 'audio/mpeg', fileName: `${title}.mp3` }, { quoted: m });
 			} return }
 switch (command) {
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+case 'daftar': {
+                if (db.users[m.sender].register) {
+                    return m.reply('Kamu sudah terdaftar!');
+                }
+
+                const argsArray = text.split(' ');
+                if (argsArray.length < 3) {
+                    return m.reply(`Format salah. Gunakan: ${prefix}daftar nama umur asal_daerah\nContoh: ${prefix}daftar Budi 20 Jakarta`);
+                }
+
+                const userName = argsArray[0];
+                const userAge = parseInt(argsArray[1]);
+                const userOrigin = argsArray.slice(2).join(' ');
+
+                if (isNaN(userAge) || userAge <= 0) {
+                    return m.reply('Umur harus berupa angka positif.');
+                }
+
+                db.users[m.sender].register = true;
+                db.users[m.sender].name = userName;
+                db.users[m.sender].age = userAge;
+                db.users[m.sender].origin = userOrigin;
+                db.users[m.sender].level = 0; // Level awal
+                db.users[m.sender].exp = 0;    // EXP awal
+
+                m.reply(`Pendaftaran berhasil! Selamat datang, ${userName} (umur ${userAge}, dari ${userOrigin}).`);
+            }
+            break
 	case 'play2':
 case 'playmusic':
     if (!q) return m.reply(`*Contoh:* ${prefix + command} https://www.youtube.com/watch?v=dQw4w9WgXcQ`);
@@ -2901,11 +2945,25 @@ m.reply('istri? kapan kamu nikah? samperin aja ga bisa, kesenjangan jarak pula. 
 			}
 			break
 			case 'profile': case 'cek': {
-				const user = Object.keys(db.users)
-				const infoUser = db.users[m.sender]
-				await m.reply(`*👤Profile @${m.sender.split('@')[0]}* :\n🐋User Bot : ${user.includes(m.sender) ? 'True' : 'False'}\n🔥User : ${isVip ? 'VIP' : isPremium ? 'PREMIUM' : 'FREE'}${isPremium ? `\n⏳Expired : ${checkStatus(m.sender, premium) ? formatDate(getExpired(m.sender, db.premium)) : '-'}` : ''}\n🎫Limit : ${infoUser.limit}\n💰Uang : ${infoUser ? infoUser.money.toLocaleString('id-ID') : '0'}`)
-			}
-			break
+                const user = db.users[m.sender]; // Ambil data pengguna
+                const userName = user.name || (m.pushName || m.sender.split('@')[0]); // Gunakan nama terdaftar atau nama WhatsApp
+                const userAge = user.age || 'Tidak diketahui';
+                const userOrigin = user.origin || 'Tidak diketahui';
+                const userLevel = user.level || 0;
+                const userExp = user.exp || 0;
+
+                await m.reply(`*👤Profile @${m.sender.split('@')[0]}* :\n` +
+                              `*Nama:* ${userName}\n` +
+                              `*Umur:* ${userAge}\n` +
+                              `*Asal:* ${userOrigin}\n` +
+                              `*Status Daftar:* ${user.register ? 'Terdaftar ✅' : 'Belum Terdaftar ❌'}\n` +
+                              `*Level:* ${userLevel} (EXP: ${userExp})\n` +
+                              `*User Bot:* ${user ? 'True' : 'False'}\n` +
+                              `*User:* ${isVip ? 'VIP' : isPremium ? 'PREMIUM' : 'FREE'}${isPremium ? `\n*Expired:* ${checkStatus(m.sender, premium) ? formatDate(getExpired(m.sender, db.premium)) : '-'}` : ''}\n` +
+                              `*Limit:* ${isVip ? 'VIP' : user.limit}\n` +
+                              `*Uang:* ${user ? user.money.toLocaleString('id-ID') : '0'}`);
+            }
+            break
 			case 'leaderboard': {
 				const entries = Object.entries(db.users).sort((a, b) => b[1].money - a[1].money).slice(0, 10).map(entry => entry[0]);
 				let teksnya = '╭──❍「 *LEADERBOARD* 」❍\n'
